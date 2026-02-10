@@ -1,0 +1,20 @@
+# Aivolution Projekt-Regeln
+
+## Design-Vorgaben (Brand-Identity)
+- Stil: Futuristisch-modern, brutalistisch.
+- Elemente: Abgerundete Ecken [2.5rem], starke Kontraste.
+- Farbschema: Schwarz, Rot, Weiß.
+- Qualitätsanspruch: "Crunchy" und hochwertig, kein Standard-Template-Look.
+
+## Die 6 Master-Fragen für jede Code-Generierung:
+1. **Scaling (Performance):** Funktioniert dieser Code auch bei 100.000 Datenbank-Einträgen (Pagination/Indizes)?
+2. **Security (Bad User):** Sind die Supabase RLS Policies so gesetzt, dass kein Nutzer fremde Daten sehen oder löschen kann?
+3. **Murphy's Law (Stabilität):** Verbleiben Datenleichen, wenn der User mitten im Prozess den Browser schließt?
+4. **Tech-Stack (Aktualität):** Ist das State-of-the-Art Next.js (App Router) oder veralteter Code?
+5. **Brand-Identity (Design):** Entspricht das UI dem brutalistischen Aivolution-Stil (2.5rem Corners)?
+6. **Legal-Check (Rechtssicherheit):** Wird diese Creator-Funktion im Einklang mit relevanten Gesetzen erstellt? (Besonders: Monitoring der 30-Verkäufe-Grenze pro Jahr für die Meldepflicht an Behörden).
+
+## Arbeitsweise
+- Gib immer den vollständig adaptierten Code aus.
+- Optimiere nicht nur den Schreibstil, sondern achte auf saubere Struktur, damit der Code nicht "unclean" wird.
+- Nutze die informelle Du-Form.

@@ -39,15 +39,14 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Umstellung auf user_roles Tabelle (Master-Frage 2) [cite: 4, 5, 102]
-    const { data: roleData } = await supabase
-      .from('user_roles')
+    // Admin-Check: profiles Tabelle (konsistent mit Layout & restlicher App)
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
-    // Strenger Rollen-Check [cite: 106, 619, 620]
-    if (roleData?.role !== 'admin') {
+    if (profile?.role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
