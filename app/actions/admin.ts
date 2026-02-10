@@ -19,13 +19,8 @@ export default async function Kommandozentrale() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single()
-
-  if (roleData?.role !== 'admin') redirect('/')
+  const { data: role } = await supabase.rpc('get_my_role')
+  if (role !== 'admin') redirect('/')
 
   // 2. DATA FETCHING (Promo-Slots für das Manifest) [cite: 107]
   const { data: promoSlots } = await supabase

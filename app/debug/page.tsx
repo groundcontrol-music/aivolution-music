@@ -25,6 +25,8 @@ export default async function DebugPage() {
     .eq('id', user.id)
     .single();
 
+  const { data: roleViaRpc } = await supabase.rpc('get_my_role');
+
   return (
     <div className="p-12 max-w-2xl mx-auto space-y-8 font-mono text-sm">
       <h1 className="text-2xl font-black uppercase">Admin Debug</h1>
@@ -49,8 +51,8 @@ export default async function DebugPage() {
       <section className="border-2 border-black p-6 space-y-3">
         <h2 className="font-black uppercase text-red-600">3. Admin-Check</h2>
         <p><strong>profile?.role:</strong> {String(profile?.role ?? 'undefined/null')}</p>
-        <p><strong>profile?.role === &quot;admin&quot;:</strong> {String(profile?.role === 'admin')}</p>
-        <p><strong>Würde Zugriff gewährt:</strong> {profile?.role === 'admin' ? 'JA' : 'NEIN'}</p>
+        <p><strong>get_my_role() RPC:</strong> {String(roleViaRpc ?? 'null')}</p>
+        <p><strong>Würde Zugriff gewährt (via RPC):</strong> {roleViaRpc === 'admin' ? 'JA' : 'NEIN'}</p>
       </section>
 
       <p className="text-xs opacity-50">Diese Seite nach dem Debug entfernen.</p>

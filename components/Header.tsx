@@ -15,9 +15,8 @@ export default function Header() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
-        // Wir nutzen die profiles Tabelle für den Check
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        setIsAdmin(profile?.role === 'admin');
+        const { data: role } = await supabase.rpc('get_my_role');
+        setIsAdmin(role === 'admin');
       }
     };
     checkAdmin();

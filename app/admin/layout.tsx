@@ -14,8 +14,8 @@ export default async function AdminLayout({
   // MASTER-CHECK: Server-seitiger Schutz
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') redirect('/');
+  const { data: role } = await supabase.rpc('get_my_role');
+  if (role !== 'admin') redirect('/');
 
   return (
     <div className="bg-[#F4F4F4] min-h-screen text-black flex flex-col font-sans">

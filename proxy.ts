@@ -39,14 +39,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Admin-Check: profiles Tabelle (konsistent mit Layout & restlicher App)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    // Admin-Check via RPC (umgeht RLS/Spalten-Probleme)
+    const { data: role } = await supabase.rpc('get_my_role')
 
-    if (profile?.role !== 'admin') {
+    if (role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

@@ -14,14 +14,9 @@ export async function updateWelcomeText(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Nicht autorisiert");
 
-  // 2. Admin-Check (Wir nutzen 'profiles', da 'user_roles' im SQL-Editor zickte)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') throw new Error("Zugriff verweigert: Admin-Status fehlt");
+  // 2. Admin-Check via RPC (umgeht RLS/Spalten-Probleme)
+  const { data: role } = await supabase.rpc('get_my_role');
+  if (role !== 'admin') throw new Error("Zugriff verweigert: Admin-Status fehlt");
 
   const title = formData.get('title') as string;
   const subtitle = formData.get('subtitle') as string;

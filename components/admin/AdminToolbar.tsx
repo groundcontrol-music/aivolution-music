@@ -19,14 +19,8 @@ export default function AdminToolbar() {
     async function checkAdmin() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Wir prüfen hier die neue user_roles Tabelle 
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        if (roleData?.role === 'admin' || roleData?.role === 'moderator') {
+        const { data: role } = await supabase.rpc('get_my_role');
+        if (role === 'admin' || role === 'moderator') {
           setIsAdmin(true);
         }
       }
