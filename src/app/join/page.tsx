@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import Link from 'next/link'
 
 export default function JoinPage() {
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -13,40 +13,24 @@ export default function JoinPage() {
 
     const formData = new FormData(e.currentTarget)
     
-    const response = await fetch('/api/auth/magic-link', {
+    const response = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         artist_name: formData.get('artist_name'),
-        email: formData.get('email')
+        email: formData.get('email'),
+        password: formData.get('password')
       })
     })
 
     if (response.ok) {
-      setSent(true)
+      window.location.href = '/onboarding/terms'
     } else {
-      alert('Fehler beim Versenden. Bitte versuche es erneut.')
+      const { error } = await response.json()
+      alert(error || 'Fehler bei der Registrierung')
     }
     
     setLoading(false)
-  }
-
-  if (sent) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white border-2 border-black rounded-lg p-8 shadow-[8px_8px_0px_0px_rgba(220,38,38,1)] text-center space-y-6">
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-            <Mail className="text-white" size={32} />
-          </div>
-          <h1 className="text-2xl font-black uppercase italic">Email verschickt!</h1>
-          <p className="text-sm font-medium text-gray-600">
-            Wir haben dir einen <strong>Magic Link</strong> geschickt. 
-            <br/>Checke dein Postfach und klicke auf den Link, um fortzufahren.
-          </p>
-          <p className="text-xs opacity-50">(Auch im Spam-Ordner nachsehen!)</p>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -58,7 +42,7 @@ export default function JoinPage() {
             Creator <span className="text-red-600">werden</span>
           </h1>
           <p className="text-xs font-bold uppercase tracking-widest opacity-40 text-center mt-2">
-            Registrierung via Magic Link
+            Registrierung
           </p>
         </div>
 
@@ -90,16 +74,31 @@ export default function JoinPage() {
           />
         </div>
 
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest" htmlFor="password">
+            Passwort *
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:border-red-600 transition-colors"
+            placeholder="Mindestens 6 Zeichen"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={loading}
           className="w-full bg-black text-white p-4 font-black uppercase tracking-widest hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : <><Mail size={20} /> Magic Link senden</>}
+          {loading ? <Loader2 className="animate-spin" size={20} /> : 'Account erstellen'}
         </button>
 
         <p className="text-xs text-center text-gray-500">
-          Schon registriert? <a href="/login" className="text-red-600 font-bold hover:underline">Zum Login</a>
+          Schon registriert? <Link href="/login" className="text-red-600 font-bold hover:underline">Zum Login</Link>
         </p>
 
       </form>
