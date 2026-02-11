@@ -14,7 +14,40 @@
 5. **Brand-Identity (Design):** Entspricht das UI dem brutalistischen Aivolution-Stil (2.5rem Corners)?
 6. **Legal-Check (Rechtssicherheit):** Wird diese Creator-Funktion im Einklang mit relevanten Gesetzen erstellt? (Besonders: Monitoring der 30-Verkäufe-Grenze pro Jahr für die Meldepflicht an Behörden).
 
+## Tech-Stack-Spezifika (Next.js 16 + Codespaces)
+**WICHTIG:** Diese Erkenntnisse sind verifiziert und dürfen NICHT durch veraltete Lösungen ersetzt werden.
+
+### Next.js 16 Anforderungen:
+- **Proxy statt Middleware:** Dateiname muss `src/proxy.ts` heißen (NICHT `middleware.ts`).
+  - Export: `export default async function proxy(request: NextRequest) { ... }`
+  - Grund: Next.js 16 hat "middleware" deprecated zugunsten von "proxy".
+  
+### Codespaces Setup:
+- **Server Actions Config:** `next.config.ts` MUSS `serverActions.allowedOrigins` enthalten:
+  ```ts
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', '*.app.github.dev']
+    }
+  }
+  ```
+  - Ohne diese Config gibt es "Invalid Server Actions request" Fehler.
+  
+- **Port 3000 ist Pflicht:** Die Codespace-URL endet auf `-3000.app.github.dev`.
+  - Bei Port-Konflikten: `pkill -f node` und neu starten.
+  - Cache-Probleme: `rm -rf .next` vor Neustart.
+
+### Supabase Integration:
+- **Admin-Check:** Immer via `supabase.rpc('get_my_role')` (NICHT direkter Tabellen-Zugriff).
+  - Grund: Umgeht RLS-Probleme und Spalten-Permissions.
+  
+### Deployment-Workflow (lokal → Codespace):
+1. Lokal: `git add . && git commit -m "..." && git push origin main`
+2. Codespace: `git pull` + Server neu starten
+3. **KEINE** alternativen Sync-Methoden verwenden (führt zu Inkonsistenzen).
+
 ## Arbeitsweise
 - Gib immer den vollständig adaptierten Code aus.
 - Optimiere nicht nur den Schreibstil, sondern achte auf saubere Struktur, damit der Code nicht "unclean" wird.
 - Nutze die informelle Du-Form.
+- **Bei Fehlern:** Prüfe ZUERST die "Tech-Stack-Spezifika" oben, bevor alte Lösungen angewendet werden.
