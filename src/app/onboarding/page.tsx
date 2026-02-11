@@ -131,9 +131,11 @@ export default function OnboardingPage() {
       // Success Redirect - User ist jetzt "submitted" und wartet auf Admin-Freischaltung
       router.push('/?onboarding=success')
       
-    } catch (error) {
-      console.error(error)
-      alert('Fehler beim Speichern. Bitte versuche es erneut.')
+    } catch (error: any) {
+      console.error('FULL ERROR:', error)
+      console.error('ERROR MESSAGE:', error?.message)
+      console.error('ERROR DETAILS:', JSON.stringify(error, null, 2))
+      alert(`Fehler: ${error?.message || 'Unbekannter Fehler. Bitte versuche es erneut.'}`)
     } finally {
       setLoading(false)
     }
