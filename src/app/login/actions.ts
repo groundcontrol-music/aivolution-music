@@ -19,6 +19,21 @@ export async function login(formData: FormData) {
     redirect('/error')
   }
 
+  // Check if user needs onboarding
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_status')
+      .eq('id', user.id)
+      .single()
+    
+    if (!profile?.onboarding_status || profile.onboarding_status === 'pending') {
+      revalidatePath('/', 'layout')
+      redirect('/onboarding')
+    }
+  }
+
   revalidatePath('/', 'layout')
   redirect('/')
 }
@@ -38,6 +53,7 @@ export async function signup(formData: FormData) {
     redirect('/error')
   }
 
+  // New users always go to onboarding
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/onboarding')
 }

@@ -112,8 +112,8 @@ export default function OnboardingPage() {
         if (songsError) throw songsError
       }
 
-      // Success Redirect
-      router.push('/admin') // Oder Dashboard
+      // Success Redirect - User ist jetzt "submitted" und wartet auf Admin-Freischaltung
+      router.push('/?onboarding=success')
       
     } catch (error) {
       console.error(error)
