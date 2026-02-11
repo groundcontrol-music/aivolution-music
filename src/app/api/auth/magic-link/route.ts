@@ -6,6 +6,20 @@ export async function POST(request: Request) {
 
   const supabase = await createClient()
 
+  // Automatische URL-Erkennung (localhost vs. Codespace)
+  const url = new URL(request.url)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  
+  let redirectUrl: string
+  if (isLocal) {
+    redirectUrl = `http://localhost:3000/auth/callback`
+  } else if (forwardedHost) {
+    redirectUrl = `https://${forwardedHost}/auth/callback`
+  } else {
+    redirectUrl = `${url.protocol}//${url.host}/auth/callback`
+  }
+
   // Magic Link senden (mit artist_name in Metadaten)
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -13,7 +27,7 @@ export async function POST(request: Request) {
       data: {
         artist_name
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+      emailRedirectTo: redirectUrl
     }
   })
 
