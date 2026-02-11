@@ -20,7 +20,7 @@ const navItems = [
   { name: 'Media', icon: ImageIcon, href: '/admin/media', color: 'text-black' },
   { name: 'Profil', icon: User, href: '/admin/profil', color: 'text-black' },
   { name: 'Kuration', icon: CheckCircle, href: '/admin/applications', color: 'text-black' },
-  { name: 'Funktion', icon: Settings, href: '/admin/funktion', color: 'text-black' },
+  { name: 'Funktion', icon: Settings, href: '/admin/terms', color: 'text-black' },
   { name: 'Finanzen', icon: DollarSign, href: '/admin/finanzen', color: 'text-black' },
 ];
 

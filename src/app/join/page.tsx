@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Mail, LogIn } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2, Mail } from 'lucide-react'
 
-export default function LoginPage() {
+export default function JoinPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -18,6 +17,7 @@ export default function LoginPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        artist_name: formData.get('artist_name'),
         email: formData.get('email')
       })
     })
@@ -41,7 +41,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-black uppercase italic">Email verschickt!</h1>
           <p className="text-sm font-medium text-gray-600">
             Wir haben dir einen <strong>Magic Link</strong> geschickt. 
-            <br/>Checke dein Postfach und klicke auf den Link, um dich einzuloggen.
+            <br/>Checke dein Postfach und klicke auf den Link, um fortzufahren.
           </p>
           <p className="text-xs opacity-50">(Auch im Spam-Ordner nachsehen!)</p>
         </div>
@@ -55,17 +55,30 @@ export default function LoginPage() {
         
         <div className="border-b-2 border-black pb-4">
           <h1 className="text-3xl font-black uppercase italic tracking-tighter text-center">
-            <LogIn className="inline mr-2 mb-1" size={28} />
-            Login
+            Creator <span className="text-red-600">werden</span>
           </h1>
           <p className="text-xs font-bold uppercase tracking-widest opacity-40 text-center mt-2">
-            via Magic Link
+            Registrierung via Magic Link
           </p>
         </div>
 
         <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest" htmlFor="artist_name">
+            Künstlername *
+          </label>
+          <input
+            id="artist_name"
+            name="artist_name"
+            type="text"
+            required
+            className="w-full p-3 border-2 border-black font-bold text-sm focus:outline-none focus:border-red-600 transition-colors"
+            placeholder="DEIN STAGE NAME"
+          />
+        </div>
+
+        <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest" htmlFor="email">
-            Email
+            Email *
           </label>
           <input
             id="email"
@@ -86,7 +99,7 @@ export default function LoginPage() {
         </button>
 
         <p className="text-xs text-center text-gray-500">
-          Noch kein Account? <Link href="/join" className="text-red-600 font-bold hover:underline">Creator werden</Link>
+          Schon registriert? <a href="/login" className="text-red-600 font-bold hover:underline">Zum Login</a>
         </p>
 
       </form>

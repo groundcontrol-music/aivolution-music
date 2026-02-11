@@ -1,30 +1,53 @@
 import { NextResponse } from 'next/server'
-// The client you created from the Server-Side Auth instructions
 import { createClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/'
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
     if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+      // Prüfe User-Status für intelligentes Routing
+      const { data: { user } } = await supabase.auth.getUser()
+      let targetPath = '/'
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('terms_accepted_at, onboarding_status')
+          .eq('id', user.id)
+          .single()
+
+        // 1. Terms nicht akzeptiert? -> /onboarding/terms
+        if (!profile?.terms_accepted_at) {
+          targetPath = '/onboarding/terms'
+        }
+        // 2. Onboarding nicht abgeschlossen? -> /onboarding
+        else if (!profile?.onboarding_status || profile.onboarding_status === 'pending') {
+          targetPath = '/onboarding'
+        }
+        // 3. Alles fertig -> Startseite
+        else {
+          targetPath = '/'
+        }
+      }
+
+      const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocal = origin.includes('localhost')
+      
       if (isLocal) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}${next}`)
+        return NextResponse.redirect(`${origin}${targetPath}`)
       } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+        return NextResponse.redirect(`https://${forwardedHost}${targetPath}`)
       } else {
-        return NextResponse.redirect(`${origin}${next}`)
+        return NextResponse.redirect(`${origin}${targetPath}`)
       }
     }
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // Fehler -> Error-Seite
+  return NextResponse.redirect(`${origin}/error`)
 }
