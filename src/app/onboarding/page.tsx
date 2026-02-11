@@ -52,6 +52,22 @@ export default function OnboardingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      // 0. BAD-WORD-CHECK (Client-Side Pre-Check)
+      const contentToCheck = [
+        formData.artistName,
+        formData.bio,
+        formData.song1.title,
+        formData.song2.title
+      ].join(' ')
+
+      const { data: badWordDetected } = await supabase.rpc('check_content_safety', { content: contentToCheck })
+      
+      if (badWordDetected === false) {
+        alert('❌ Dein Inhalt verstößt gegen unsere Richtlinien (unangemessene Begriffe erkannt). Bitte überarbeite deinen Text.')
+        setLoading(false)
+        return
+      }
+
       // 1. Upload Avatar
       let avatarUrl = null
       if (formData.avatarFile) {

@@ -13,13 +13,19 @@ export async function updateApplicationStatus(userId: string, status: 'approved'
   const { data: role } = await supabase.rpc('get_my_role')
   if (role !== 'admin') throw new Error('Keine Berechtigung')
 
-  // Update Profile
+  // Update Profile (bei approved -> role = 'creator')
+  const updateData: any = { 
+    onboarding_status: status,
+    updated_at: new Date().toISOString()
+  }
+
+  if (status === 'approved') {
+    updateData.role = 'creator' // User wird zum Creator!
+  }
+
   const { error } = await supabase
     .from('profiles')
-    .update({ 
-      onboarding_status: status,
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData)
     .eq('id', userId)
 
   if (error) {

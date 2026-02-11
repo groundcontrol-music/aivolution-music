@@ -8,19 +8,20 @@ import {
   User, 
   CheckCircle, 
   Settings, 
-  DollarSign 
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
   { name: 'Contest', icon: Trophy, href: '/admin/contest', color: 'text-black' },
-  { name: 'Alarm', icon: AlertTriangle, href: '/admin/alarm', color: 'text-red-600' },
-  { name: 'Postamt', icon: Mail, href: '/admin/postamt', color: 'text-black' },
-  { name: 'Media', icon: ImageIcon, href: '/admin/media', color: 'text-black' },
-  { name: 'Profil', icon: User, href: '/admin/profil', color: 'text-black' },
   { name: 'Kuration', icon: CheckCircle, href: '/admin/applications', color: 'text-black' },
-  { name: 'Funktion', icon: Settings, href: '/admin/terms', color: 'text-black' },
+  { name: 'Filter', icon: Shield, href: '/admin/filters', color: 'text-red-600' },
+  { name: 'Media', icon: ImageIcon, href: '/admin/media', color: 'text-black' },
+  { name: 'Postamt', icon: Mail, href: '/admin/postamt', color: 'text-black' },
+  { name: 'Terms', icon: Settings, href: '/admin/terms', color: 'text-black' },
+  { name: 'Alarm', icon: AlertTriangle, href: '/admin/alarm', color: 'text-red-600' },
   { name: 'Finanzen', icon: DollarSign, href: '/admin/finanzen', color: 'text-black' },
 ];
 
