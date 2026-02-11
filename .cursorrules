@@ -5,6 +5,28 @@
 - Elemente: Abgerundete Ecken [2.5rem], starke Kontraste.
 - Farbschema: Schwarz, Rot, Weiß.
 - Qualitätsanspruch: "Crunchy" und hochwertig, kein Standard-Template-Look.
+- **UI-Philosophie:** Dezent und clean. Lieber kleine Menüs/Panels als wuchtige Elemente.
+
+## Plattform-Architektur & Features
+
+### Rollen-System (3 Ebenen):
+1. **user:** Standard-Creator (kann eigene Inhalte verwalten)
+2. **moderation:** Moderatoren (können Inhalte kuratieren, Profile pausieren, Songs/Alben löschen)
+3. **admin:** Vollzugriff (kann alles + Moderatoren verwalten)
+
+### Admin/Moderation-Funktionen (Kommandozentrale):
+- **Kuration:**
+  - Namenssuche (Suchleiste für Creator-Profile)
+  - Bewerbungen prüfen & freischalten/ablehnen
+  - **Direkt-Editierung:** Als Admin direkt in fremden Profilen editieren können
+  - Profile pausieren/sperren
+  - Songs & Alben löschen
+- **Design:** Dezente Suchleiste, kompakte Panels (nicht zu wuchtig)
+
+### RLS (Row Level Security):
+- User: Nur eigene Daten sehen/editieren
+- Moderation: Alle Creator-Daten sehen, editieren, pausieren
+- Admin: Vollzugriff + Moderatoren-Verwaltung
 
 ## Die 6 Master-Fragen für jede Code-Generierung:
 1. **Scaling (Performance):** Funktioniert dieser Code auch bei 100.000 Datenbank-Einträgen (Pagination/Indizes)?
