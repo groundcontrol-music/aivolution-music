@@ -52,7 +52,10 @@ export default function OnboardingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      console.log('🚀 START: Onboarding Submit')
+
       // 0. BAD-WORD-CHECK (Client-Side Pre-Check)
+      console.log('📝 STEP 0: Bad-Word-Check...')
       const contentToCheck = [
         formData.artistName,
         formData.bio,
@@ -61,6 +64,7 @@ export default function OnboardingPage() {
       ].join(' ')
 
       const { data: badWordDetected } = await supabase.rpc('check_content_safety', { content: contentToCheck })
+      console.log('✅ Bad-Word-Check Result:', badWordDetected)
       
       if (badWordDetected === false) {
         alert('❌ Dein Inhalt verstößt gegen unsere Richtlinien (unangemessene Begriffe erkannt). Bitte überarbeite deinen Text.')
@@ -69,25 +73,38 @@ export default function OnboardingPage() {
       }
 
       // 1. Upload Avatar
+      console.log('📷 STEP 1: Avatar Upload...')
       let avatarUrl = null
       if (formData.avatarFile) {
         avatarUrl = await handleFileUpload(formData.avatarFile, 'avatars')
+        console.log('✅ Avatar URL:', avatarUrl)
+      } else {
+        console.log('⏭️ No Avatar uploaded')
       }
 
       // 2. Upload Songs
+      console.log('🎵 STEP 2: Songs Upload...')
       let song1Url = null
       let song2Url = null
-      if (formData.song1.file) song1Url = await handleFileUpload(formData.song1.file, 'songs')
-      if (formData.song2.file) song2Url = await handleFileUpload(formData.song2.file, 'songs')
+      if (formData.song1.file) {
+        console.log('  Uploading Song 1...')
+        song1Url = await handleFileUpload(formData.song1.file, 'songs')
+        console.log('  ✅ Song 1 URL:', song1Url)
+      }
+      if (formData.song2.file) {
+        console.log('  Uploading Song 2...')
+        song2Url = await handleFileUpload(formData.song2.file, 'songs')
+        console.log('  ✅ Song 2 URL:', song2Url)
+      }
 
-      // 3. Save Data (via Server Action Workaround or direct Client Insert - Client Insert easier here for now due to file URLs)
-      // Wir nutzen hier direkt den Client für das Update, da wir eh Client-Side sind.
-      // (Normalerweise Server Action, aber wir haben die URLs schon).
-      
+      // 3. Get User
+      console.log('👤 STEP 3: Get User...')
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No User')
+      console.log('✅ User ID:', user.id)
 
-      // Update Profile
+      // 4. Update Profile
+      console.log('💾 STEP 4: Update Profile...')
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -96,13 +113,18 @@ export default function OnboardingPage() {
           tech_stack: formData.techStack,
           social_links: formData.socials,
           onboarding_status: 'submitted',
-          avatar_url: avatarUrl // Nur wenn neu hochgeladen, sonst lassen? Hier ist es initial onboarding -> also neu.
+          avatar_url: avatarUrl
         })
         .eq('id', user.id)
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('❌ Profile Update Error:', profileError)
+        throw new Error(`Profile Update fehlgeschlagen: ${profileError.message || JSON.stringify(profileError)}`)
+      }
+      console.log('✅ Profile Updated')
 
-      // Insert Songs
+      // 5. Insert Songs
+      console.log('🎶 STEP 5: Insert Songs...')
       const songsToInsert = []
       if (song1Url && formData.song1.title) {
         songsToInsert.push({
@@ -124,11 +146,19 @@ export default function OnboardingPage() {
       }
 
       if (songsToInsert.length > 0) {
+        console.log('  Inserting', songsToInsert.length, 'songs...')
         const { error: songsError } = await supabase.from('songs').insert(songsToInsert)
-        if (songsError) throw songsError
+        if (songsError) {
+          console.error('❌ Songs Insert Error:', songsError)
+          throw new Error(`Songs Insert fehlgeschlagen: ${songsError.message || JSON.stringify(songsError)}`)
+        }
+        console.log('✅ Songs Inserted')
+      } else {
+        console.log('⏭️ No Songs to insert')
       }
 
-      // Success Redirect - User ist jetzt "submitted" und wartet auf Admin-Freischaltung
+      // Success Redirect
+      console.log('✅ SUCCESS! Redirecting...')
       router.push('/?onboarding=success')
       
     } catch (error: any) {
