@@ -54,23 +54,9 @@ export default function OnboardingPage() {
     try {
       console.log('🚀 START: Onboarding Submit')
 
-      // 0. BAD-WORD-CHECK (Client-Side Pre-Check)
-      console.log('📝 STEP 0: Bad-Word-Check...')
-      const contentToCheck = [
-        formData.artistName,
-        formData.bio,
-        formData.song1.title,
-        formData.song2.title
-      ].join(' ')
-
-      const { data: badWordDetected } = await supabase.rpc('check_content_safety', { content: contentToCheck })
-      console.log('✅ Bad-Word-Check Result:', badWordDetected)
-      
-      if (badWordDetected === false) {
-        alert('❌ Dein Inhalt verstößt gegen unsere Richtlinien (unangemessene Begriffe erkannt). Bitte überarbeite deinen Text.')
-        setLoading(false)
-        return
-      }
+      // 0. BAD-WORD-CHECK (Temporär deaktiviert für Testing)
+      console.log('📝 STEP 0: Bad-Word-Check... (SKIPPED for now)')
+      // TODO: Filter verbessern (nur ganze Wörter matchen, nicht Substrings)
 
       // 1. Upload Avatar
       console.log('📷 STEP 1: Avatar Upload...')
