@@ -10,9 +10,38 @@
 ## Plattform-Architektur & Features
 
 ### Rollen-System (3 Ebenen):
-1. **user:** Standard-Creator (kann eigene Inhalte verwalten)
-2. **moderation:** Moderatoren (können Inhalte kuratieren, Profile pausieren, Songs/Alben löschen)
-3. **admin:** Vollzugriff (kann alles + Moderatoren verwalten)
+1. **user:** Basis-Account (Community nutzen, kaufen) - kein Verkauf
+2. **creator:** User nach Onboarding-Freischaltung (kann verkaufen)
+3. **moderation:** Moderatoren (können Inhalte kuratieren, Profile pausieren, Songs/Alben löschen)
+4. **admin:** Vollzugriff (kann alles + Moderatoren verwalten)
+
+### Creator-Onboarding Workflow (BEST PRACTICE):
+**WICHTIG:** Bevorzuge IMMER diesen schlanken Flow (keine Multi-Step-Formulare mit Redirects).
+
+**Phase 1: Registrierung**
+- AGBs/Richtlinien/Checkboxen VORHER zeigen (editierbar via Admin-Panel)
+- Magic Link anfordern (Email-Bestätigung = Spam-Schutz)
+- User klickt Link → Session aktiv
+
+**Phase 2: Profil-Erstellung (All-in-One)**
+- **EIN Formular** (nicht Steps!) mit:
+  - Artist Name, Bio, Tech-Stack, Social Links
+  - 2 Songs hochladen (**WAV-Format** für Verkauf)
+  - System erstellt automatisch **30-Sek-MP3-Preview** (Server-Side mit ffmpeg)
+- **Speichern:** Profile + Songs in EINER Transaction
+- **Status:** `locked` (Schloss-Symbol: "Wartet auf Freischaltung")
+
+**Phase 3: Freischaltung**
+- Admin prüft in Kuration (Songs anhören, Profil checken)
+- Automatischer Filter läuft parallel (Grundgesetz, Bad-Words)
+- Admin schaltet frei → `role = 'creator'`, Status `active`
+
+**Technische Vorteile:**
+- Weniger Redirects (stabiler)
+- Weniger DB-Calls (performanter)
+- Client-Side Profile-Creation (RLS funktioniert, weil Session aktiv)
+- Einfacher zu debuggen (weniger Moving Parts)
+- Klarer Status-Flow (locked → active)
 
 ### Admin/Moderation-Funktionen (Kommandozentrale):
 - **Kuration:**
