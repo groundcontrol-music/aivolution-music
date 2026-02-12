@@ -21,5 +21,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
+  // Profil automatisch erstellen (da Trigger nicht zuverlässig)
+  if (data.user) {
+    await supabase
+      .from('profiles')
+      .insert({
+        id: data.user.id,
+        artist_name: artist_name,
+        role: 'user',
+        onboarding_status: 'pending'
+      })
+      .select()
+      .single()
+    
+    // Fehler ignorieren (falls Trigger doch funktioniert hat -> ON CONFLICT)
+  }
+
   return NextResponse.json({ success: true, user: data.user })
 }
