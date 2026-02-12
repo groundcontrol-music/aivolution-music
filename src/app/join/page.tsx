@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/client'
 
 export default function JoinPage() {
   const [loading, setLoading] = useState(false)
@@ -12,25 +13,43 @@ export default function JoinPage() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
+    const artistName = formData.get('artist_name') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
     
-    const response = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        artist_name: formData.get('artist_name'),
-        email: formData.get('email'),
-        password: formData.get('password')
+    try {
+      // 1. Signup (Client-Side, damit Session gesetzt wird)
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
       })
-    })
 
-    if (response.ok) {
+      if (error) throw error
+      if (!data.user) throw new Error('User creation failed')
+
+      // 2. Profil erstellen (JETZT hat auth.uid() einen Wert, RLS funktioniert!)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          artist_name: artistName,
+          role: 'user',
+          onboarding_status: 'pending'
+        })
+
+      if (profileError) {
+        console.error('Profile Insert Error:', profileError)
+        throw new Error('Profil konnte nicht erstellt werden')
+      }
+
+      // 3. Weiter zu Terms
       window.location.href = '/onboarding/terms'
-    } else {
-      const { error } = await response.json()
-      alert(error || 'Fehler bei der Registrierung')
+      
+    } catch (error: any) {
+      alert(error?.message || 'Fehler bei der Registrierung')
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
 
   return (
