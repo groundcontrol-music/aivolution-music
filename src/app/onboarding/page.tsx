@@ -9,6 +9,18 @@ import { Loader2, Upload, Check, X, Music, Disc } from 'lucide-react'
 const TECH_OPTIONS = ['Suno', 'Udio', 'Mubert', 'Soundraw', 'AIVA', 'Boomy', 'Splash', 'Beatoven.ai']
 const GENRE_OPTIONS = ['Techno', 'House', 'Hip Hop', 'Lo-Fi', 'Ambient', 'Rock', 'Metal', 'Pop', 'Classical', 'Jazz', 'Experimental', 'Drum & Bass', 'Synthwave']
 
+// Bad-Word-Filter
+const BAD_WORDS = ['nazi', 'hitler', 'fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'cock', 'pussy', 'kill', 'murder', 'rape', 'terrorist', 'bomb', 'weapon', 'drug', 'cocaine', 'heroin', 'meth', 'pedo', 'pedophil', 'porn', 'xxx', 'sex', 'nigger', 'faggot', 'retard', 'suicide', 'illegal', 'scam', 'fraud', 'hack']
+
+function containsBadWords(text: string): boolean {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return BAD_WORDS.some(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'i')
+    return regex.test(lower)
+  })
+}
+
 export default function OnboardingPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -54,9 +66,14 @@ export default function OnboardingPage() {
     try {
       console.log('🚀 START: Onboarding Submit')
 
-      // 0. BAD-WORD-CHECK (Temporär deaktiviert für Testing)
-      console.log('📝 STEP 0: Bad-Word-Check... (SKIPPED for now)')
-      // TODO: Filter verbessern (nur ganze Wörter matchen, nicht Substrings)
+      // 0. BAD-WORD-CHECK
+      const textToCheck = `${formData.artistName} ${formData.bio} ${formData.song1.title} ${formData.song2.title}`
+      if (containsBadWords(textToCheck)) {
+        alert('❌ Dein Inhalt enthält unzulässige Begriffe. Bitte entferne diese und versuche es erneut.')
+        setLoading(false)
+        return
+      }
+      console.log('✅ Bad-Word-Check passed')
 
       // 1. Upload Avatar
       console.log('📷 STEP 1: Avatar Upload...')
@@ -148,10 +165,9 @@ export default function OnboardingPage() {
       router.push('/?onboarding=success')
       
     } catch (error: any) {
-      console.error('FULL ERROR:', error)
-      console.error('ERROR MESSAGE:', error?.message)
-      console.error('ERROR DETAILS:', JSON.stringify(error, null, 2))
-      alert(`Fehler: ${error?.message || 'Unbekannter Fehler. Bitte versuche es erneut.'}`)
+      const msg = error?.message ?? error?.error_description ?? error?.details ?? (typeof error === 'object' && error !== null ? (error.code ? `[${error.code}] ${error.message || ''}` : JSON.stringify(error)) : String(error))
+      console.error('Onboarding Error:', msg, error)
+      alert(`Fehler: ${msg || 'Unbekannter Fehler. Bitte versuche es erneut.'}`)
     } finally {
       setLoading(false)
     }

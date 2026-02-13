@@ -46,9 +46,16 @@ export default function ApplicationCard({ application, songs }: { application: P
     if(!confirm(`Bist du sicher? (${newStatus.toUpperCase()})`)) return
 
     setStatus(newStatus === 'approved' ? 'approving' : 'rejecting')
-    await updateApplicationStatus(application.id, newStatus)
-    // Parent Revalidate wird durch Server Action getriggert, Komponente verschwindet beim nächsten Refresh
-    // Wir können hier aber auch lokal state updaten um Feedback zu geben
+    const result = await updateApplicationStatus(application.id, newStatus)
+    
+    if (result?.error) {
+      alert(`Fehler: ${result.error}`)
+      setStatus('idle')
+      return
+    }
+    
+    // Erfolg – Seite wird durch revalidatePath aktualisiert
+    window.location.reload()
   }
 
   return (

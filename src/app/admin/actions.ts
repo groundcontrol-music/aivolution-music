@@ -8,10 +8,10 @@ export async function updateApplicationStatus(userId: string, status: 'approved'
 
   // Admin Check
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Nicht eingeloggt')
+  if (!user) return { error: 'Nicht eingeloggt' }
 
   const { data: role } = await supabase.rpc('get_my_role')
-  if (role !== 'admin') throw new Error('Keine Berechtigung')
+  if (role !== 'admin') return { error: 'Keine Berechtigung' }
 
   // Update Profile (bei approved -> role = 'creator')
   const updateData: any = { 
@@ -20,19 +20,34 @@ export async function updateApplicationStatus(userId: string, status: 'approved'
   }
 
   if (status === 'approved') {
-    updateData.role = 'creator' // User wird zum Creator!
+    updateData.role = 'creator'
   }
 
-  const { error } = await supabase
+  const { error: profileError } = await supabase
     .from('profiles')
     .update(updateData)
     .eq('id', userId)
 
-  if (error) {
-    console.error('Update Error:', error)
-    return { error: 'Fehler beim Aktualisieren des Status.' }
+  if (profileError) {
+    console.error('Profile Update Error:', profileError)
+    return { error: `Profil-Update fehlgeschlagen: ${profileError.message}` }
+  }
+
+  // Bei Freischaltung: Probe-Songs auf is_probe = false (erscheinen in THE LAB)
+  if (status === 'approved') {
+    const { error: songsError } = await supabase
+      .from('songs')
+      .update({ is_probe: false })
+      .eq('user_id', userId)
+      .eq('is_probe', true)
+
+    if (songsError) {
+      console.error('Songs Update Error:', songsError)
+      // Trotzdem success – Profil ist freigeschaltet
+    }
   }
 
   revalidatePath('/admin/applications')
+  revalidatePath('/')
   return { success: true }
 }

@@ -59,9 +59,10 @@ export default function TermsPage() {
 
       // Weiter zu Profil-Erstellung
       router.push('/onboarding')
-    } catch (error) {
-      console.error(error)
-      alert('Fehler beim Speichern. Bitte versuche es erneut.')
+    } catch (error: any) {
+      const msg = error?.message ?? (typeof error === 'object' ? JSON.stringify(error) : String(error))
+      console.error('Terms Error:', msg, error)
+      alert(`Fehler: ${msg || 'Fehler beim Speichern. Bitte versuche es erneut.'}`)
     } finally {
       setLoading(false)
     }

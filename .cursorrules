@@ -19,29 +19,46 @@
 **WICHTIG:** Bevorzuge IMMER diesen schlanken Flow (keine Multi-Step-Formulare mit Redirects).
 
 **Phase 1: Registrierung**
-- AGBs/Richtlinien/Checkboxen VORHER zeigen (editierbar via Admin-Panel)
-- Magic Link anfordern (Email-Bestätigung = Spam-Schutz)
-- User klickt Link → Session aktiv
+- Route: `/creator-signup`
+- AGBs/Richtlinien als Checkbox (vereinfacht, zentral in der Form)
+- Email + Passwort + Artist Name
+- Nach Signup: Profil wird CLIENT-SIDE erstellt (Session ist aktiv!)
+- Status: `onboarding_status = 'pending'`
 
 **Phase 2: Profil-Erstellung (All-in-One)**
+- Gleiche Route, Step 2 nach erfolgreicher Auth
 - **EIN Formular** (nicht Steps!) mit:
-  - Artist Name, Bio, Tech-Stack, Social Links
-  - 2 Songs hochladen (**WAV-Format** für Verkauf)
-  - System erstellt automatisch **30-Sek-MP3-Preview** (Server-Side mit ffmpeg)
-- **Speichern:** Profile + Songs in EINER Transaction
-- **Status:** `locked` (Schloss-Symbol: "Wartet auf Freischaltung")
+  - Avatar Upload, Bio, Tech-Stack (Multi-Select), Social Links
+  - 2 Songs hochladen (MP3, max 10MB)
+  - Genre-Tags (max 3 pro Song)
+- **Speichern:** 
+  1. Avatar + Songs zu Supabase Storage
+  2. Profile UPDATE (bio, tech_stack, social_links, avatar_url)
+  3. Songs INSERT (2 Einträge, `is_probe = true`)
+  4. Status: `onboarding_status = 'submitted'`
+- Redirect: `/?status=pending` (Homepage mit Lock-Symbol-Hinweis)
 
 **Phase 3: Freischaltung**
-- Admin prüft in Kuration (Songs anhören, Profil checken)
-- Automatischer Filter läuft parallel (Grundgesetz, Bad-Words)
-- Admin schaltet frei → `role = 'creator'`, Status `active`
+- Admin prüft in `/admin/applications` (Songs anhören, Profil checken)
+- Automatischer Filter läuft bei Submit (Bad-Words via `check_content_safety` RPC)
+- Admin klickt "Approve" → Server Action:
+  - `onboarding_status = 'approved'`
+  - `role = 'creator'`
+  - Trigger generiert automatisch `artist_name_slug` für Creator-Profil-URL
+- Creator bekommt Email-Benachrichtigung (TODO)
 
 **Technische Vorteile:**
 - Weniger Redirects (stabiler)
 - Weniger DB-Calls (performanter)
 - Client-Side Profile-Creation (RLS funktioniert, weil Session aktiv)
 - Einfacher zu debuggen (weniger Moving Parts)
-- Klarer Status-Flow (locked → active)
+- Klarer Status-Flow (pending → submitted → approved)
+
+**Dateien:**
+- `/src/app/creator-signup/page.tsx` - Registrierung + Profil-Form
+- `/src/app/creator/[slug]/page.tsx` - Creator-Profil (öffentlich)
+- `/src/app/admin/applications/page.tsx` - Admin Review
+- `supabase_creator_profile_v2.sql` - Slug-Generierung (Trigger)
 
 ### Admin/Moderation-Funktionen (Kommandozentrale):
 - **Kuration:**

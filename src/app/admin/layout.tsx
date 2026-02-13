@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
-import AdminNav from '@/components/admin/AdminNav';
+import AdminNavWithBadges from '@/components/admin/AdminNavWithBadges';
 
 export default async function AdminLayout({
   children,
@@ -21,7 +21,7 @@ export default async function AdminLayout({
       <Header />
       
       {/* Admin Sub-Navigation */}
-      <AdminNav />
+      <AdminNavWithBadges />
 
       <main className="flex-1">
         {children}
