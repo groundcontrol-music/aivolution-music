@@ -28,7 +28,18 @@ Führe die folgenden SQL-Dateien **in dieser Reihenfolge** im Supabase SQL Edito
 
 ### 🔴 JETZT AUSFÜHREN (fehlt noch):
 
-#### 1. **`supabase_admin_profiles_rls.sql`** ⚠️ WICHTIG!
+#### 1. **`supabase_security_fixes.sql`** ⚠️ WICHTIG ZUERST!
+**Was es macht:**
+- Behebt Supabase Security Warnings (Function Search Path Mutable)
+- Entfernt alte/ungenutzte `artists`-Tabelle (falls leer)
+- Funktionen neu mit `SET search_path = ''` erstellen
+
+**Warum zuerst:**
+Sicherheits-Fixes sollten immer zuerst angewendet werden!
+
+---
+
+#### 2. **`supabase_admin_profiles_rls.sql`** ⚠️ WICHTIG!
 **Was es macht:**
 - Admins dürfen ALLE Profile lesen (für Kuration)
 - Admins dürfen ALLE Profile updaten (für Freischaltung)
@@ -39,15 +50,16 @@ Ohne diese Policies kann der Admin keine Bewerbungen in `/admin/applications` se
 
 ---
 
-#### 2. **`supabase_admin_notifications.sql`** ⚠️ WICHTIG!
+#### 3. **`supabase_admin_notifications.sql`** ⚠️ WICHTIG!
 **Was es macht:**
 - **RPC-Funktion:** `get_my_role()` (wird in `admin/actions.ts` verwendet)
 - **Admin-Policies:** Admins dürfen System-Messages erstellen/lesen
 - **Trigger:** Bei neuer Bewerbung (`onboarding_status = 'submitted'`) wird automatisch eine Nachricht an alle Admins gesendet
 
 **Warum wichtig:**
-- Ohne `get_my_role()` funktioniert die Admin-Freischaltung nicht
-- Ohne Trigger bekommst du keine Benachrichtigungen bei neuen Bewerbungen!
+- Erstellt `get_my_role()` (wird in `admin/actions.ts` verwendet)
+- Trigger für automatische Admin-Benachrichtigungen
+- HINWEIS: Die Security-Fixes Version wird bereits mit sicheren Funktionen erstellt!
 
 ---
 
@@ -83,16 +95,18 @@ Ohne diese Policies kann der Admin keine Bewerbungen in `/admin/applications` se
 | `supabase_creator_profile_v2.sql` | ✅ Vermutlich OK | Artist-Slugs |
 | `supabase_shop_forum_messages.sql` | ✅ Vermutlich OK | Shop, Forum, Messages |
 | `supabase_promo_slots_*.sql` | ✅ Vermutlich OK | Media-Boxen |
+| **`supabase_security_fixes.sql`** | 🔴 **ZUERST AUSFÜHREN!** | Security Warnings beheben |
 | **`supabase_admin_profiles_rls.sql`** | 🔴 **JETZT AUSFÜHREN!** | Admin-Rechte für Kuration |
-| **`supabase_admin_notifications.sql`** | 🔴 **JETZT AUSFÜHREN!** | Admin-Benachrichtigungen + RPC |
+| **`supabase_admin_notifications.sql`** | 🟡 Optional (in Security-Fixes enthalten) | Admin-Benachrichtigungen + RPC |
 
 ---
 
 ## ⚠️ Wichtige Hinweise
 
 1. **Reihenfolge beachten:**
-   - Erst `supabase_admin_profiles_rls.sql`
-   - Dann `supabase_admin_notifications.sql`
+   - **Zuerst:** `supabase_security_fixes.sql` (Sicherheit!)
+   - Dann: `supabase_admin_profiles_rls.sql`
+   - Zuletzt: `supabase_admin_notifications.sql` (optional, da Security-Fixes bereits sichere Funktionen erstellt)
 
 2. **Fehler beim Ausführen?**
    - Manche Policies existieren schon → `DROP POLICY IF EXISTS` verhindert Fehler
@@ -138,3 +152,9 @@ npm run dev
 
 **Keine Benachrichtigungen**
 → Prüfe, ob `messages`-Tabelle existiert und Trigger aktiv ist
+
+**Supabase Security Warnings**
+→ Führe `supabase_security_fixes.sql` aus
+
+**Function Search Path Mutable**
+→ Security-Fixes beheben dies (Funktionen mit `SET search_path = ''`)
