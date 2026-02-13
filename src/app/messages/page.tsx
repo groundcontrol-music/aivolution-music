@@ -75,15 +75,21 @@ export default function MessagesPage() {
   }
 
   const deleteMessage = async (messageId: string) => {
-    if (!confirm('Nachricht löschen?')) return
+    if (!confirm('Nachricht löschen? (Sie wird für 7 Tage archiviert, dann endgültig gelöscht)')) return
 
-    await supabase
-      .from('messages')
-      .delete()
-      .eq('id', messageId)
+    try {
+      // Soft-Delete via RPC (DSGVO-konform)
+      const { error } = await supabase.rpc('soft_delete_message', { message_id: messageId })
+      
+      if (error) throw error
 
-    setSelectedMessage(null)
-    fetchMessages()
+      alert('✅ Nachricht gelöscht (wird in 7 Tagen endgültig entfernt)')
+      setSelectedMessage(null)
+      fetchMessages()
+      
+    } catch (error: any) {
+      alert(`Fehler beim Löschen: ${error.message}`)
+    }
   }
 
   const getTypeIcon = (type: string) => {
