@@ -17,6 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
+      <head>
+        {/* Referrer Policy für YouTube Embeds (Fehler 153 Fix) */}
+        <meta name="referrer" content="no-referrer-when-downgrade" />
+      </head>
       <body className={inter.className}>
         {/* Header ist hier global, aber wir haben ihn auch in page.tsx importiert? 
             Checken wir page.tsx. Dort ist er auch. 

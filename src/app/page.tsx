@@ -55,13 +55,14 @@ export default async function Home() {
                     )}
                     {slot?.media_type === 'youtube' && slot.youtube_id && (
                       <div className="absolute inset-0 z-0 overflow-hidden bg-black flex items-center justify-center">
-                        {/* YouTube 16:9 in Square (1:1) → Optimale Darstellung */}
+                        {/* YouTube Embed mit Referrer Policy (Fehler 153 Fix) */}
                         <iframe
-                          src={`https://www.youtube.com/embed/${slot.youtube_id}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                          src={`https://www.youtube-nocookie.com/embed/${slot.youtube_id}?rel=0&modestbranding=1`}
                           title={slot.title}
                           frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
                           className="w-full h-full"
                           style={{ minWidth: '100%', minHeight: '100%' }}
                         />

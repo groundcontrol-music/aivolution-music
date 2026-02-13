@@ -9,7 +9,20 @@ const nextConfig: NextConfig = {
         '*.app.github.dev'
       ]
     }
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Referrer-Policy',
+            value: 'no-referrer-when-downgrade',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
