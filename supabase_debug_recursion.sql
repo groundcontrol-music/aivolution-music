@@ -46,11 +46,12 @@ WHERE tablename = 'profiles';
 -- 4. Prüfe deine Admin-Rolle
 -- ============================================================
 SELECT 
-  id,
-  email,
-  role
-FROM public.profiles 
-WHERE id = auth.uid();
+  p.id,
+  p.artist_name,
+  p.role,
+  p.onboarding_status
+FROM public.profiles p
+WHERE p.id = auth.uid();
 
 -- Erwartetes Ergebnis:
 -- role: 'admin'
