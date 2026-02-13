@@ -7,12 +7,14 @@ import { useRouter } from 'next/navigation'
 
 interface Message {
   id: string
-  message_type: 'system' | 'private' | 'forum' | 'global'
+  message_type: 'system' | 'private' | 'forum' | 'global' | 'application'
   subject?: string
   content: string
   sender_id?: string
   is_read: boolean
   created_at: string
+  status?: 'approved' | 'rejected' | null
+  related_slug?: string | null // Link zum Creator-Profil
   sender?: {
     artist_name: string
   }
@@ -87,6 +89,7 @@ export default function MessagesPage() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'system': return <Settings className="text-red-600" size={16} />
+      case 'application': return <Settings className="text-orange-600" size={16} />
       case 'private': return <Mail className="text-blue-600" size={16} />
       case 'forum': return <MessageSquare className="text-green-600" size={16} />
       case 'global': return <Globe className="text-purple-600" size={16} />
@@ -97,6 +100,7 @@ export default function MessagesPage() {
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'system': return 'System'
+      case 'application': return 'Bewerbung'
       case 'private': return 'Privat'
       case 'forum': return 'Forum'
       case 'global': return 'Global'
@@ -224,6 +228,21 @@ export default function MessagesPage() {
                   <p className="text-base font-medium leading-relaxed whitespace-pre-wrap">
                     {selectedMessage.content}
                   </p>
+
+                  {/* Link zum Creator-Profil (bei Bewerbungen) */}
+                  {selectedMessage.related_slug && (
+                    <div className="mt-6 pt-4 border-t-2 border-black">
+                      <a
+                        href={`/creator/${selectedMessage.related_slug}`}
+                        className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 font-black uppercase text-sm hover:bg-red-600 transition-colors rounded-sm"
+                      >
+                        🎸 Profil ansehen
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
