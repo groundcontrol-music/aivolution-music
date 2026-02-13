@@ -20,7 +20,30 @@ END;
 $$;
 
 -- ============================================================
--- 2. ALLE Policies löschen (auf allen Tabellen)
+-- 2. SPALTEN HINZUFÜGEN (ZUERST! Bevor Policies erstellt werden)
+-- ============================================================
+
+-- Visibility für Profile
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'pending';
+
+ALTER TABLE public.profiles
+DROP CONSTRAINT IF EXISTS profiles_visibility_check;
+
+ALTER TABLE public.profiles
+ADD CONSTRAINT profiles_visibility_check 
+CHECK (visibility IN ('pending', 'public', 'rejected'));
+
+-- Status für Messages (grün/rot)
+ALTER TABLE public.messages 
+ADD COLUMN IF NOT EXISTS status TEXT;
+
+-- related_slug für Messages (Profil-Links)
+ALTER TABLE public.messages 
+ADD COLUMN IF NOT EXISTS related_slug TEXT;
+
+-- ============================================================
+-- 3. ALLE Policies löschen (auf allen Tabellen)
 -- ============================================================
 DO $$ 
 DECLARE
@@ -48,7 +71,7 @@ BEGIN
 END $$;
 
 -- ============================================================
--- 3. NEUE Policies: PROFILES
+-- 4. NEUE Policies: PROFILES
 -- ============================================================
 CREATE POLICY "Users can read own profile" 
   ON public.profiles FOR SELECT
@@ -76,7 +99,7 @@ CREATE POLICY "Public can read public creators"
   USING (role = 'creator' AND visibility = 'public');
 
 -- ============================================================
--- 4. NEUE Policies: SONGS
+-- 5. NEUE Policies: SONGS
 -- ============================================================
 CREATE POLICY "Public can read released songs" 
   ON public.songs FOR SELECT
@@ -107,7 +130,7 @@ CREATE POLICY "Admins can update any song"
   USING (get_my_role() = 'admin');
 
 -- ============================================================
--- 5. NEUE Policies: PROMO_SLOTS
+-- 6. NEUE Policies: PROMO_SLOTS
 -- ============================================================
 CREATE POLICY "Public can read promo_slots" 
   ON public.promo_slots FOR SELECT
