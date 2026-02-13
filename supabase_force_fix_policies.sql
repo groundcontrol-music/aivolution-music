@@ -1,7 +1,8 @@
 -- ============================================================
 -- FORCE FIX: Löscht ALLE alten Policies und erstellt neue
 -- ============================================================
--- Nutze dies, wenn supabase_fix_recursion.sql nicht funktioniert hat
+-- WICHTIG: Führe ZUERST supabase_security_fixes.sql aus!
+-- (Erstellt get_my_role() Funktion mit SECURITY DEFINER)
 
 -- ============================================================
 -- 1. ALLE Policies auf profiles löschen

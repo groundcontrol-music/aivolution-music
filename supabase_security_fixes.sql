@@ -10,7 +10,7 @@
 -- Lösung: Funktionen mit "SET search_path = ''" neu erstellen
 
 -- 1a. get_my_role (Fix)
-DROP FUNCTION IF EXISTS get_my_role();
+DROP FUNCTION IF EXISTS get_my_role() CASCADE;
 CREATE OR REPLACE FUNCTION get_my_role()
 RETURNS TEXT
 LANGUAGE plpgsql
