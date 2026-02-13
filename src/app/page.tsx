@@ -30,13 +30,13 @@ export default async function Home() {
           {/* LINKER BEREICH (75%) – schließt unten mit Highlight ab */}
           <div className="col-span-12 lg:col-span-9 flex flex-col gap-6 min-h-0 h-full">
             
-            {/* 1. MEDIA BOXEN (tendenz 9:16) */}
+            {/* 1. MEDIA BOXEN (Square für bessere YouTube/Bild-Kompatibilität) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((id) => {
                 const slot = slots?.find(s => s.slot_id === id)
                 return (
                   <div key={id} className="
-                    aspect-[3/4] flex flex-col justify-between p-0
+                    aspect-square flex flex-col justify-between p-0
                     bg-white border-2 border-black rounded-lg 
                     transition-all duration-200 
                     hover:shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] hover:-translate-y-1
@@ -54,33 +54,29 @@ export default async function Home() {
                       </div>
                     )}
                     {slot?.media_type === 'youtube' && slot.youtube_id && (
-                      <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-                        {/* YouTube 16:9 in 3:4 Box → Wir zeigen Ausschnitt (Cover-Modus) */}
-                        <div className="absolute top-1/2 left-1/2 w-full h-[133%] -translate-x-1/2 -translate-y-1/2">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${slot.youtube_id}?autoplay=0&mute=1&controls=1&rel=0&modestbranding=1`}
-                            title={slot.title}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 z-0 overflow-hidden bg-black flex items-center justify-center">
+                        {/* YouTube 16:9 in Square (1:1) → Optimale Darstellung */}
+                        <iframe
+                          src={`https://www.youtube.com/embed/${slot.youtube_id}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                          title={slot.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          className="w-full h-full"
+                          style={{ minWidth: '100%', minHeight: '100%' }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
                       </div>
                     )}
                     {slot?.media_type === 'tiktok' && slot.tiktok_id && (
                       <div className="absolute inset-0 z-0 overflow-hidden bg-black flex items-center justify-center">
-                        {/* TikTok 9:16 passt perfekt zu 3:4 - minimal croppen */}
-                        <iframe
-                          src={`https://www.tiktok.com/embed/v2/${slot.tiktok_id}?lang=de-DE`}
-                          title={slot.title}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                          allowFullScreen
-                          className="w-full h-full"
-                          style={{ minHeight: '100%', minWidth: '100%' }}
-                        />
+                        {/* TikTok Embed (TODO: Für Creator-Profile optimieren) */}
+                        <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold p-4 text-center">
+                          <div>
+                            <p className="mb-2">🎵 TikTok Video</p>
+                            <p className="text-[10px] opacity-60">TikTok-Embed wird für Creator-Profile optimiert</p>
+                          </div>
+                        </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                       </div>
                     )}
