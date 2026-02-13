@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import OnboardingHelper from "@/components/OnboardingHelper";
+import { PlayerProvider } from "@/contexts/PlayerContext";
+import GlobalPlayer from "@/components/GlobalPlayer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,9 +25,12 @@ export default function RootLayout({
         <meta name="referrer" content="no-referrer-when-downgrade" />
       </head>
       <body className={inter.className}>
-        <Header />
-        <OnboardingHelper />
-        {children}
+        <PlayerProvider>
+          <Header />
+          <OnboardingHelper />
+          {children}
+          <GlobalPlayer />
+        </PlayerProvider>
       </body>
     </html>
   );

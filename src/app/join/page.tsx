@@ -303,23 +303,28 @@ export default function JoinPage() {
 
         <div className="space-y-6">
           
-          <p className="text-sm bg-zinc-50 border-2 border-black p-4 rounded-lg font-medium">
-            Lade hier <strong>mindestens 1 Song</strong> (maximal 2) hoch. 
-            Diese dienen als Arbeitsprobe für unsere Prüfung.
-          </p>
+          <div className="bg-blue-50 border-2 border-blue-600 p-4 rounded-lg text-sm space-y-2">
+            <p className="font-bold">🎵 Wichtig: Bitte WAV-Dateien hochladen!</p>
+            <ul className="text-xs space-y-1">
+              <li>✅ <strong>WAV</strong> = Hochwertig, für späteren Verkauf</li>
+              <li>✅ <strong>MP3-Preview</strong> wird automatisch bei Freischaltung generiert (30 Sek.)</li>
+              <li>✅ WAV bleibt geschützt (nur für Käufer zugänglich)</li>
+              <li>✅ Max. 50MB pro Song</li>
+            </ul>
+          </div>
 
           {/* Song 1 */}
           <div className="border-2 border-black p-6 rounded-[2.5rem] bg-white">
             <div className="text-xs font-black text-red-600 uppercase mb-4">Track 01 (Pflicht)</div>
             <label className="cursor-pointer bg-zinc-100 border-2 border-black px-6 py-4 text-sm font-bold uppercase hover:bg-black hover:text-white transition-colors flex items-center gap-3 justify-center rounded-lg">
               <Music size={20} />
-              {song1 ? `✅ ${song1.name}` : 'MP3 wählen (max. 10MB)'}
-              <input type="file" accept="audio/mp3,audio/mpeg" className="hidden" onChange={(e) => {
+              {song1 ? `✅ ${song1.name}` : 'WAV wählen (max. 50MB)'}
+              <input type="file" accept="audio/wav,audio/wave,audio/x-wav" className="hidden" onChange={(e) => {
                 const file = e.target.files?.[0]
-                if (file && file.size <= 10 * 1024 * 1024) {
+                if (file && file.size <= 50 * 1024 * 1024) {
                   setSong1(file)
                 } else {
-                  alert('Datei zu groß (max. 10MB)')
+                  alert('Datei zu groß (max. 50MB)')
                 }
               }} />
             </label>
@@ -330,13 +335,13 @@ export default function JoinPage() {
             <div className="text-xs font-black text-gray-400 uppercase mb-4">Track 02 (Optional)</div>
             <label className="cursor-pointer bg-white border-2 border-gray-300 px-6 py-4 text-sm font-bold uppercase hover:border-black hover:bg-black hover:text-white transition-colors flex items-center gap-3 justify-center rounded-lg">
               <Music size={20} />
-              {song2 ? `✅ ${song2.name}` : 'MP3 wählen (max. 10MB)'}
-              <input type="file" accept="audio/mp3,audio/mpeg" className="hidden" onChange={(e) => {
+              {song2 ? `✅ ${song2.name}` : 'WAV wählen (max. 50MB)'}
+              <input type="file" accept="audio/wav,audio/wave,audio/x-wav" className="hidden" onChange={(e) => {
                 const file = e.target.files?.[0]
-                if (file && file.size <= 10 * 1024 * 1024) {
+                if (file && file.size <= 50 * 1024 * 1024) {
                   setSong2(file)
                 } else {
-                  alert('Datei zu groß (max. 10MB)')
+                  alert('Datei zu groß (max. 50MB)')
                 }
               }} />
             </label>
