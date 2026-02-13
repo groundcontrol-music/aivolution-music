@@ -45,16 +45,19 @@ export default function LoginPage() {
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest" htmlFor="email">
-            Email
+            Künstlername oder Email
           </label>
           <input
             id="email"
             name="email"
-            type="email"
+            type="text"
             required
             className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:border-red-600 transition-colors"
-            placeholder="deine@email.de"
+            placeholder="DEIN_KÜNSTLERNAME"
           />
+          <p className="text-[10px] text-gray-500 mt-1">
+            💡 Du kannst dich mit deinem Künstlernamen einloggen (DSGVO-freundlich!)
+          </p>
         </div>
 
         <div className="space-y-2">

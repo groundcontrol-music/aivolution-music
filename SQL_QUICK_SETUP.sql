@@ -141,7 +141,7 @@ CREATE POLICY "Admins can update promo_slots"
   USING (get_my_role() = 'admin');
 
 -- ============================================================
--- 6. NEUE Policies: MESSAGES
+-- 7. NEUE Policies: MESSAGES
 -- ============================================================
 CREATE POLICY "Users can read own messages"
   ON public.messages FOR SELECT
@@ -169,29 +169,6 @@ CREATE POLICY "Admins can read all messages"
   USING (get_my_role() = 'admin');
 
 -- ============================================================
--- 7. Spalten hinzufügen
--- ============================================================
-
--- Visibility für Profile
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'pending';
-
-ALTER TABLE public.profiles
-DROP CONSTRAINT IF EXISTS profiles_visibility_check;
-
-ALTER TABLE public.profiles
-ADD CONSTRAINT profiles_visibility_check 
-CHECK (visibility IN ('pending', 'public', 'rejected'));
-
--- Status für Messages (grün/rot)
-ALTER TABLE public.messages 
-ADD COLUMN IF NOT EXISTS status TEXT;
-
--- related_slug für Messages (Profil-Links)
-ALTER TABLE public.messages 
-ADD COLUMN IF NOT EXISTS related_slug TEXT;
-
--- ============================================================
 -- 8. Indizes für Performance
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_profiles_visibility 
@@ -206,7 +183,62 @@ ON public.messages(related_slug)
 WHERE related_slug IS NOT NULL;
 
 -- ============================================================
--- 9. Migration: Bestehende Profile
+-- 9. Login-Helper Tabelle (für Login mit Künstlername)
+-- ============================================================
+-- Ermöglicht Login mit artist_name statt Email (DSGVO-freundlich)
+
+CREATE TABLE IF NOT EXISTS public.artist_logins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  artist_name_lower TEXT NOT NULL UNIQUE, -- lowercase für case-insensitive lookup
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index für schnellen Login-Lookup
+CREATE INDEX IF NOT EXISTS idx_artist_logins_name 
+ON public.artist_logins(artist_name_lower);
+
+-- RLS für artist_logins
+ALTER TABLE public.artist_logins ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read artist logins for auth"
+  ON public.artist_logins FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can manage own login"
+  ON public.artist_logins FOR ALL
+  USING (auth.uid() = user_id);
+
+-- Trigger: Auto-sync mit profiles.artist_name
+CREATE OR REPLACE FUNCTION sync_artist_login()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  -- Bei INSERT/UPDATE von artist_name in profiles
+  IF NEW.artist_name IS NOT NULL THEN
+    INSERT INTO public.artist_logins (user_id, artist_name_lower)
+    VALUES (NEW.id, LOWER(NEW.artist_name))
+    ON CONFLICT (artist_name_lower) 
+    DO UPDATE SET 
+      artist_name_lower = LOWER(NEW.artist_name),
+      updated_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_sync_artist_login ON public.profiles;
+CREATE TRIGGER trigger_sync_artist_login
+  AFTER INSERT OR UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_artist_login();
+
+-- ============================================================
+-- 10. Migration: Bestehende Profile auf visibility setzen
 -- ============================================================
 UPDATE public.profiles
 SET visibility = 'public'
@@ -221,7 +253,7 @@ SET visibility = 'rejected'
 WHERE onboarding_status = 'rejected' AND visibility IS NULL;
 
 -- ============================================================
--- 10. Schema neu laden
+-- 11. Schema neu laden
 -- ============================================================
 NOTIFY pgrst, 'reload schema';
 
