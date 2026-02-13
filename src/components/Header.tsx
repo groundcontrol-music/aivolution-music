@@ -125,7 +125,7 @@ export default function Header() {
               <Link href="/login" className="flex items-center gap-2 font-bold uppercase text-xs tracking-widest hover:text-red-600 transition-colors">
                 <User size={14} /> Login
               </Link>
-              <Link href="/creator-signup" className="bg-black text-white px-4 py-2 font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-colors rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]">
+              <Link href="/join" className="bg-black text-white px-4 py-2 font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-colors rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]">
                 Creator werden
               </Link>
             </div>

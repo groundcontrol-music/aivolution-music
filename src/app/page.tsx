@@ -111,7 +111,7 @@ export default async function Home() {
                   Neue <span className="text-red-600">Creator</span>
                 </h3>
                 <Link 
-                  href="/creator-signup"
+                  href="/join"
                   className="text-[10px] font-bold uppercase tracking-wider text-red-600 hover:text-black transition-colors flex items-center gap-1"
                 >
                   <Sparkles size={12} />
