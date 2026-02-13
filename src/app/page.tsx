@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
@@ -20,7 +19,6 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans selection:bg-red-600 selection:text-white">
-      <Header />
       
       <main className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-12">
         

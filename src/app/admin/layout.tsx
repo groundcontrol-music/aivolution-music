@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import Header from '@/components/Header';
 import AdminNavWithBadges from '@/components/admin/AdminNavWithBadges';
 
 export default async function AdminLayout({
@@ -18,7 +17,7 @@ export default async function AdminLayout({
 
   return (
     <div className="bg-[#F4F4F4] min-h-screen text-black flex flex-col font-sans">
-      <Header />
+      {/* Header kommt bereits vom Root-Layout */}
       
       {/* Admin Sub-Navigation */}
       <AdminNavWithBadges />
