@@ -8,6 +8,11 @@ import CreatorMiniForum from '@/components/creator/CreatorMiniForum'
 export default async function CreatorProfilePage({ params }: { params: { slug: string } }) {
   const supabase = await createClient()
   
+  // Check if user is admin
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userRole } = user ? await supabase.rpc('get_my_role') : { data: null }
+  const isAdmin = userRole === 'admin'
+  
   // Fetch Creator Profile by slug (artist_name_slug)
   const { data: creator, error } = await supabase
     .from('profiles')
@@ -20,17 +25,21 @@ export default async function CreatorProfilePage({ params }: { params: { slug: s
     notFound()
   }
 
-  // Fetch Songs
+  // Visibility Check: Nur Admins sehen pending/rejected Profile
+  if (creator.visibility !== 'public' && !isAdmin) {
+    notFound()
+  }
+
+  // Check if current user is the creator owner
+  const isCreatorOwner = user?.id === creator.id
+
+  // Fetch Songs (alle für Admin/Owner, nur nicht-probe für andere)
   const { data: songs } = await supabase
     .from('songs')
     .select('*')
     .eq('user_id', creator.id)
-    .eq('is_probe', false)
+    .eq('is_probe', false) // Später: if (isAdmin || isCreatorOwner) auch is_probe=true
     .order('created_at', { ascending: false })
-
-  // Check if current user is the creator owner
-  const { data: { user } } = await supabase.auth.getUser()
-  const isCreatorOwner = user?.id === creator.id
 
   // Social Links
   const socials = creator.social_links || {}
@@ -45,6 +54,40 @@ export default async function CreatorProfilePage({ params }: { params: { slug: s
   return (
     <div className="min-h-screen bg-zinc-50">
       
+      {/* ADMIN PREVIEW BANNER (nur bei pending) */}
+      {isAdmin && creator.visibility === 'pending' && (
+        <div className="bg-yellow-500 border-b-4 border-black px-4 py-3 sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <Eye className="animate-pulse" />
+              <span className="font-black uppercase text-sm">
+                ⚠️ VORSCHAU - Profil wartet auf Freischaltung
+              </span>
+            </div>
+            <div className="flex gap-3">
+              <form action={`/api/admin/approve-profile`} method="POST">
+                <input type="hidden" name="userId" value={creator.id} />
+                <button 
+                  type="submit"
+                  className="bg-green-600 text-white px-6 py-2 font-black uppercase text-xs hover:bg-green-700 transition-colors"
+                >
+                  ✅ FREISCHALTEN
+                </button>
+              </form>
+              <form action={`/api/admin/reject-profile`} method="POST">
+                <input type="hidden" name="userId" value={creator.id} />
+                <button 
+                  type="submit"
+                  className="bg-red-600 text-white px-6 py-2 font-black uppercase text-xs hover:bg-red-700 transition-colors"
+                >
+                  ❌ ABLEHNEN
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="bg-white border-b-2 border-black">
         <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">

@@ -159,21 +159,70 @@ export default function CreatorSignupPage() {
           tech_stack: profileData.techStack,
           social_links: profileData.socials,
           avatar_url: avatarUrl,
-          onboarding_status: 'submitted' // Wartet auf Freischaltung
+          onboarding_status: 'submitted', // Wartet auf Freischaltung
+          visibility: 'pending', // Nur für Admin sichtbar
+          role: 'creator' // Schon als Creator markieren (aber nicht öffentlich!)
         })
         .eq('id', user.id)
 
       if (profileError) throw new Error(`Profile Update: ${profileError.message}`)
 
-      // 4. Insert Songs
+      // 4. Insert Songs (schon als reguläre Songs, nicht is_probe!)
       console.log('🎶 Inserting Songs...')
       const songsToInsert = []
-      if (song1Url) songsToInsert.push({ user_id: user.id, title: profileData.song1.title, genres: profileData.song1.genres, file_url: song1Url, is_probe: true })
-      if (song2Url) songsToInsert.push({ user_id: user.id, title: profileData.song2.title, genres: profileData.song2.genres, file_url: song2Url, is_probe: true })
+      if (song1Url) songsToInsert.push({ 
+        user_id: user.id, 
+        title: profileData.song1.title, 
+        genres: profileData.song1.genres, 
+        file_url: song1Url, 
+        is_probe: false, // Direkt als Shop-Song (aber Profil ist pending!)
+        price: 2.99 // Standard-Preis (Creator kann später ändern)
+      })
+      if (song2Url) songsToInsert.push({ 
+        user_id: user.id, 
+        title: profileData.song2.title, 
+        genres: profileData.song2.genres, 
+        file_url: song2Url, 
+        is_probe: false,
+        price: 2.99
+      })
 
       if (songsToInsert.length > 0) {
         const { error: songsError } = await supabase.from('songs').insert(songsToInsert)
         if (songsError) throw new Error(`Songs Insert: ${songsError.message}`)
+      }
+
+      // 5. Generiere artist_name_slug (falls noch nicht vorhanden)
+      const slug = authData.artistName.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+      
+      await supabase
+        .from('profiles')
+        .update({ artist_name_slug: slug })
+        .eq('id', user.id)
+
+      // 6. Benachrichtigung an Admins senden
+      console.log('📨 Sending Admin Notification...')
+      
+      // Hole alle Admins
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
+      
+      if (admins && admins.length > 0) {
+        const notifications = admins.map(admin => ({
+          recipient_id: admin.id,
+          sender_id: null,
+          message_type: 'application',
+          subject: `🎸 Neue Bewerbung: ${authData.artistName}`,
+          content: `Creator "${authData.artistName}" hat sich beworben. Profil: /creator/${slug}`,
+          related_id: user.id,
+          related_slug: slug // Custom field für direkten Link
+        }))
+        
+        await supabase.from('messages').insert(notifications)
       }
 
       console.log('✅ SUCCESS!')
