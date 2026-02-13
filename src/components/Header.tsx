@@ -11,6 +11,7 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [cartItems, setCartItems] = useState(0)
+  const [notificationColor, setNotificationColor] = useState<'green' | 'red' | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -24,9 +25,22 @@ export default function Header() {
         const { data: role } = await supabase.rpc('get_my_role')
         setIsAdmin(role === 'admin')
 
-        // Fetch unread messages count (TODO: implement after messages table exists)
-        // const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', user.id).eq('is_read', false)
-        // setUnreadMessages(count || 0)
+        // Fetch unread messages count & Notification Status
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('status')
+          .eq('recipient_id', user.id)
+          .eq('is_read', false)
+          .order('created_at', { ascending: false })
+        
+        if (messages && messages.length > 0) {
+          setUnreadMessages(messages.length)
+          // Priorität: approved (grün) > rejected (rot) > null
+          const approvedMsg = messages.find(m => m.status === 'approved')
+          const rejectedMsg = messages.find(m => m.status === 'rejected')
+          if (approvedMsg) setNotificationColor('green')
+          else if (rejectedMsg) setNotificationColor('red')
+        }
         
         // Fetch cart items (TODO: implement after cart table exists)
         // const { count: cartCount } = await supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
@@ -53,15 +67,23 @@ export default function Header() {
         <nav className="flex items-center gap-4">
           {user && (
             <>
-              {/* Messages */}
+              {/* Messages mit Notification-Farbe */}
               <Link 
                 href="/messages" 
-                className="relative p-2 hover:bg-zinc-100 rounded-sm transition-colors border-2 border-transparent hover:border-black"
+                className={`relative p-2 hover:bg-zinc-100 rounded-sm transition-colors border-2 hover:border-black ${
+                  notificationColor === 'green' ? 'border-green-600' : 
+                  notificationColor === 'red' ? 'border-red-600' : 
+                  'border-transparent'
+                }`}
                 title="Messages"
               >
-                <MessageSquare size={20} />
+                <MessageSquare size={20} className={notificationColor === 'green' ? 'text-green-600' : notificationColor === 'red' ? 'text-red-600' : ''} />
                 {unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className={`absolute -top-1 -right-1 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center ${
+                    notificationColor === 'green' ? 'bg-green-600 animate-pulse' : 
+                    notificationColor === 'red' ? 'bg-red-600 animate-pulse' : 
+                    'bg-zinc-600'
+                  }`}>
                     {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}
