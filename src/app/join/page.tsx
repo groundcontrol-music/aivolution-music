@@ -135,6 +135,7 @@ export default function JoinPage() {
         {
           user_id: user.id,
           title: song1Data.title,
+          file_url: song1Data.url, // Backward-compat: alte DBs erwarten NOT NULL
           wav_url: song1Data.url,
           is_probe: true,
           price: 2.99,
@@ -146,6 +147,7 @@ export default function JoinPage() {
         songsToInsert.push({
           user_id: user.id,
           title: song2Data.title,
+          file_url: song2Data.url, // Backward-compat: alte DBs erwarten NOT NULL
           wav_url: song2Data.url,
           is_probe: true,
           price: 2.99,
