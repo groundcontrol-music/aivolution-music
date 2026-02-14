@@ -14,11 +14,12 @@ export default async function AdminApplicationsPage() {
   const supabase = await createClient()
 
   // Hole pending Creator-Profile (vereinfachte Ansicht)
+  // WICHTIG: Suche nach 'user' mit 'submitted' Status (vor Freischaltung)
   const { data: applications } = await supabase
     .from('profiles')
     .select('id, artist_name, artist_name_slug, avatar_url, bio, created_at, updated_at')
     .eq('visibility', 'pending')
-    .eq('role', 'creator')
+    .eq('onboarding_status', 'submitted')
     .order('updated_at', { ascending: false })
 
   // Zähle Songs pro Creator

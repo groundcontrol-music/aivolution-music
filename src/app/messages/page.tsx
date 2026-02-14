@@ -14,7 +14,8 @@ interface Message {
   is_read: boolean
   created_at: string
   status?: 'approved' | 'rejected' | null
-  related_slug?: string | null // Link zum Creator-Profil
+  related_id?: string | null // User-ID für Review-Link
+  related_slug?: string | null // Legacy: Link zum Creator-Profil
   sender?: {
     artist_name: string
   }
@@ -22,7 +23,7 @@ interface Message {
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
-  const [filter, setFilter] = useState<'all' | 'system' | 'private' | 'forum' | 'global'>('all')
+  const [filter, setFilter] = useState<'all' | 'curation' | 'system' | 'application' | 'private' | 'forum' | 'global'>('all')
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -54,13 +55,52 @@ export default function MessagesPage() {
     }
 
     const { data, error } = await query
+    let mergedMessages: Message[] = []
 
     if (!error && data) {
-      setMessages(data.map((m: any) => ({
+      mergedMessages = data.map((m: any) => ({
         ...m,
         sender: m.profiles
-      })))
+      }))
     }
+
+    // Stabiler Fallback: Für Admins submitted-Bewerbungen auch ohne Message-Inserts anzeigen
+    const { data: role } = await supabase.rpc('get_my_role')
+    if (role === 'admin') {
+      const { data: pendingProfiles } = await supabase
+        .from('profiles')
+        .select('id, artist_name, created_at')
+        .eq('role', 'user')
+        .eq('onboarding_status', 'submitted')
+        .eq('visibility', 'pending')
+
+      if (pendingProfiles && pendingProfiles.length > 0) {
+        const existingRelated = new Set(
+          mergedMessages
+            .filter((m) => m.message_type === 'application' && m.related_id)
+            .map((m) => m.related_id as string)
+        )
+
+        const virtualMessages: Message[] = pendingProfiles
+          .filter((p: any) => !existingRelated.has(p.id))
+          .map((p: any) => ({
+            id: `virtual-${p.id}`,
+            message_type: 'application',
+            subject: `🎸 Neue Bewerbung: ${p.artist_name || 'Creator'}`,
+            content: `Creator "${p.artist_name || 'Unbekannt'}" wartet auf Prüfung. Öffne unten die Kuration.`,
+            sender_id: undefined,
+            is_read: false,
+            created_at: p.created_at,
+            related_id: p.id,
+            sender: { artist_name: 'System' }
+          }))
+
+        mergedMessages = [...virtualMessages, ...mergedMessages].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+      }
+    }
+    setMessages(mergedMessages)
     setLoading(false)
   }
 
@@ -115,6 +155,14 @@ export default function MessagesPage() {
   }
 
   const unreadCount = messages.filter(m => !m.is_read).length
+  const filteredMessages = messages.filter((msg) => {
+    if (filter === 'all') return true
+    if (filter === 'curation') {
+      const text = `${msg.subject || ''} ${msg.content || ''}`.toLowerCase()
+      return msg.message_type === 'application' || text.includes('bewerb')
+    }
+    return msg.message_type === filter
+  })
 
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
@@ -137,7 +185,7 @@ export default function MessagesPage() {
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'system', 'private', 'forum', 'global'].map((type) => (
+          {['all', 'curation', 'application', 'system', 'private', 'forum', 'global'].map((type) => (
             <button
               key={type}
               onClick={() => setFilter(type as any)}
@@ -147,7 +195,7 @@ export default function MessagesPage() {
                   : 'bg-white border-black hover:bg-zinc-100'
               }`}
             >
-              {type === 'all' ? 'Alle' : getTypeLabel(type)}
+              {type === 'all' ? 'Alle' : type === 'curation' ? 'Kuration' : getTypeLabel(type)}
               {type === 'all' && ` (${messages.length})`}
             </button>
           ))}
@@ -160,13 +208,13 @@ export default function MessagesPage() {
           <div className="md:col-span-1 space-y-3">
             {loading ? (
               <div className="text-center py-12 text-sm font-medium text-zinc-400">Laden...</div>
-            ) : messages.length > 0 ? (
-              messages.map((msg) => (
+            ) : filteredMessages.length > 0 ? (
+              filteredMessages.map((msg) => (
                 <div
                   key={msg.id}
                   onClick={() => {
                     setSelectedMessage(msg)
-                    if (!msg.is_read) markAsRead(msg.id)
+                    if (!msg.id.startsWith('virtual-') && !msg.is_read) markAsRead(msg.id)
                   }}
                   className={`bg-white border-2 border-black rounded-sm p-4 cursor-pointer hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
                     !msg.is_read ? 'bg-yellow-50 border-yellow-600' : ''
@@ -223,20 +271,37 @@ export default function MessagesPage() {
                       {new Date(selectedMessage.created_at).toLocaleString('de-DE')}
                     </div>
                   </div>
-                  <button
-                    onClick={() => deleteMessage(selectedMessage.id)}
-                    className="p-2 border-2 border-black hover:bg-red-600 hover:text-white transition-colors rounded-sm"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {!selectedMessage.id.startsWith('virtual-') && (
+                    <button
+                      onClick={() => deleteMessage(selectedMessage.id)}
+                      className="p-2 border-2 border-black hover:bg-red-600 hover:text-white transition-colors rounded-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
                 <div className="prose prose-sm max-w-none">
                   <p className="text-base font-medium leading-relaxed whitespace-pre-wrap">
                     {selectedMessage.content}
                   </p>
 
-                  {/* Link zum Creator-Profil (bei Bewerbungen) */}
-                  {selectedMessage.related_slug && (
+                  {/* Link zur Bewerbungsprüfung (robust auch für Legacy-Systemnachrichten) */}
+                  {selectedMessage.related_id && (
+                    <div className="mt-6 pt-4 border-t-2 border-black">
+                      <a
+                        href={`/admin/review/${selectedMessage.related_id}`}
+                        className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 font-black uppercase text-sm hover:bg-red-600 transition-colors rounded-sm"
+                      >
+                        🎸 Bewerbung prüfen
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </a>
+                    </div>
+                  )}
+                  
+                  {/* Legacy: Link zum Creator-Profil */}
+                  {selectedMessage.related_slug && !selectedMessage.related_id && (
                     <div className="mt-6 pt-4 border-t-2 border-black">
                       <a
                         href={`/creator/${selectedMessage.related_slug}`}

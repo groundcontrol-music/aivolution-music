@@ -95,26 +95,33 @@ export default function JoinPage() {
     }
 
     setLoading(true)
+    const log: string[] = []
+    
     try {
+      log.push('🚀 START Signup-Prozess')
+      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not logged in')
+      log.push(`✅ User: ${user.id}`)
 
-      // Upload Songs
+      // Upload Songs (WAV-Files in songs-wav Bucket)
       const uploadSong = async (file: File, songNumber: number) => {
         const fileExt = file.name.split('.').pop()
         const fileName = `${user.id}/${Date.now()}-${songNumber}.${fileExt}`
         
+        log.push(`📤 Upload Song ${songNumber}: ${fileName}`)
         const { error: uploadError } = await supabase.storage
-          .from('songs')
+          .from('songs-wav')
           .upload(fileName, file)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          log.push(`❌ Storage Error: ${uploadError.message}`)
+          throw uploadError
+        }
+        log.push(`✅ Song ${songNumber} hochgeladen`)
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('songs')
-          .getPublicUrl(fileName)
-
-        return { url: publicUrl, title: file.name.replace(/\.[^/.]+$/, '') }
+        const wavUrl = `songs-wav/${fileName}`
+        return { url: wavUrl, title: file.name.replace(/\.[^/.]+$/, '') }
       }
 
       const song1Data = await uploadSong(song1, 1)
@@ -128,9 +135,10 @@ export default function JoinPage() {
         {
           user_id: user.id,
           title: song1Data.title,
-          file_url: song1Data.url,
-          is_probe: true, // PROBE! Nicht im Shop bis Freischaltung
-          price: 2.99
+          wav_url: song1Data.url,
+          is_probe: true,
+          price: 2.99,
+          preview_generated: false
         }
       ]
 
@@ -138,51 +146,115 @@ export default function JoinPage() {
         songsToInsert.push({
           user_id: user.id,
           title: song2Data.title,
-          file_url: song2Data.url,
+          wav_url: song2Data.url,
           is_probe: true,
-          price: 2.99
+          price: 2.99,
+          preview_generated: false
         })
       }
 
-      await supabase.from('songs').insert(songsToInsert)
+      log.push(`💾 Speichere ${songsToInsert.length} Songs...`)
+      const { error: songsError } = await supabase.from('songs').insert(songsToInsert)
+      if (songsError) {
+        log.push(`❌ Songs Error: ${songsError.message}`)
+        throw songsError
+      }
+      log.push(`✅ Songs gespeichert`)
 
-      // Status auf 'submitted' setzen & Slug generieren
+      // Profil updaten
       const slug = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      await supabase
+      log.push(`🔄 Update Profil: slug=${slug}`)
+      
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           onboarding_status: 'submitted',
           artist_name_slug: slug
         })
         .eq('id', user.id)
+      
+      if (profileError) {
+        log.push(`❌ Profile Error: ${profileError.message}`)
+        throw profileError
+      }
+      log.push(`✅ Profil updated`)
 
-      // Benachrichtigung an Admins
-      const { data: admins } = await supabase
+      // Admins suchen
+      log.push(`🔍 Suche Admins...`)
+      const { data: admins, error: adminError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, role')
         .eq('role', 'admin')
       
-      if (admins) {
+      if (adminError) {
+        log.push(`❌ Admin-Lookup Error: ${adminError.message}`)
+      } else {
+        log.push(`✅ ${admins?.length || 0} Admin(s) gefunden: ${JSON.stringify(admins)}`)
+      }
+      
+      if (admins && admins.length > 0) {
         const notifications = admins.map(admin => ({
           recipient_id: admin.id,
           sender_id: null,
           message_type: 'application',
           subject: `🎸 Neue Bewerbung: ${artistName}`,
-          content: `Creator "${artistName}" hat sich beworben. Email: ${email}. Songs hochgeladen: ${song2 ? '2' : '1'}`,
-          related_id: user.id,
-          related_slug: slug
+          content: `Creator "${artistName}" hat sich beworben. Email: ${email}. Songs: ${song2 ? '2' : '1'}. Klicke unten auf "Bewerbung prüfen".`,
+          related_id: user.id, // User-ID für Review-Link
+          related_slug: slug,
+          status: 'unread'
         }))
         
-        await supabase.from('messages').insert(notifications)
+        log.push(`📧 Sende ${notifications.length} Notification(s)...`)
+        log.push(`📧 Data: ${JSON.stringify(notifications[0])}`)
+        
+        const { data: insertedMsg, error: msgError } = await supabase
+          .from('messages')
+          .insert(notifications)
+          .select()
+        
+        if (msgError) {
+          log.push(`❌ Message Error: ${msgError.message}`)
+          log.push(`❌ Details: ${JSON.stringify(msgError)}`)
+          // Fallback: als Systemmessage senden, damit Kuration nie "leer" ist
+          const fallback = admins.map(admin => ({
+            recipient_id: admin.id,
+            sender_id: null,
+            message_type: 'system',
+            subject: `🎸 Bewerbung (Fallback): ${artistName}`,
+            content: `Neue Creator-Bewerbung von ${artistName}. Öffne die Kuration in /admin/review/${user.id}`,
+            related_id: user.id,
+            related_slug: slug,
+            status: 'unread'
+          }))
+          const { error: fallbackError } = await supabase.from('messages').insert(fallback)
+          if (fallbackError) {
+            log.push(`❌ Fallback Message Error: ${fallbackError.message}`)
+          } else {
+            log.push('✅ Fallback-Systemmessage versendet')
+          }
+        } else {
+          log.push(`✅ Message versendet! IDs: ${insertedMsg?.map(m => m.id).join(', ')}`)
+        }
+      } else {
+        log.push(`⚠️ Keine Admins gefunden`)
       }
 
-      // Erfolg → Zeige Bestätigung
+      // Log ausgeben
+      console.log('=== SIGNUP DEBUG ===')
+      log.forEach(l => console.log(l))
+      console.log('====================')
+
       router.push('/?signup=success')
       
     } catch (error: any) {
-      const msg = error?.message ?? (typeof error === 'object' ? JSON.stringify(error) : String(error))
-      console.error('Upload Error:', msg, error)
-      alert(`Fehler: ${msg}`)
+      const msg = error?.message ?? String(error)
+      log.push(`❌ FATAL: ${msg}`)
+      
+      console.log('=== SIGNUP ERROR ===')
+      log.forEach(l => console.log(l))
+      console.log('====================')
+      
+      alert(`Fehler: ${msg}\n\nSiehe Console (F12)`)
     } finally {
       setLoading(false)
     }

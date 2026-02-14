@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 import { Disc3, ExternalLink, Zap, Eye } from 'lucide-react'
 import Link from 'next/link'
 import ShopSongCard from '@/components/creator/ShopSongCard'
-import CreatorMiniForum from '@/components/creator/CreatorMiniForum'
 
-export default async function CreatorProfilePage({ params }: { params: { slug: string } }) {
+export default async function CreatorProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient()
+  const { slug } = await params // Next.js 16: params is a Promise
   
   // Check if user is admin
   const { data: { user } } = await supabase.auth.getUser()
@@ -14,11 +14,12 @@ export default async function CreatorProfilePage({ params }: { params: { slug: s
   const isAdmin = userRole === 'admin'
   
   // Fetch Creator Profile by slug (artist_name_slug)
+  // WICHTIG: Auch 'user' mit onboarding_status='submitted' zulassen (für Admin-Preview)
   const { data: creator, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('artist_name_slug', params.slug)
-    .eq('role', 'creator')
+    .eq('artist_name_slug', slug)
+    .or('role.eq.creator,role.eq.user') // Creator ODER User (pending)
     .single()
 
   if (error || !creator) {
@@ -29,17 +30,28 @@ export default async function CreatorProfilePage({ params }: { params: { slug: s
   if (creator.visibility !== 'public' && !isAdmin) {
     notFound()
   }
+  
+  // Für normale User: Nur freigeschaltete Creator zeigen
+  if (!isAdmin && creator.role !== 'creator') {
+    notFound()
+  }
 
   // Check if current user is the creator owner
   const isCreatorOwner = user?.id === creator.id
 
   // Fetch Songs (alle für Admin/Owner, nur nicht-probe für andere)
-  const { data: songs } = await supabase
+  let songsQuery = supabase
     .from('songs')
     .select('*')
     .eq('user_id', creator.id)
-    .eq('is_probe', false) // Später: if (isAdmin || isCreatorOwner) auch is_probe=true
     .order('created_at', { ascending: false })
+  
+  // Admins und Creator sehen auch Probe-Songs (für Kuration)
+  if (!isAdmin && !isCreatorOwner) {
+    songsQuery = songsQuery.eq('is_probe', false)
+  }
+  
+  const { data: songs } = await songsQuery
 
   // Social Links
   const socials = creator.social_links || {}
@@ -215,8 +227,7 @@ export default async function CreatorProfilePage({ params }: { params: { slug: s
           </div>
         </section>
 
-        {/* Creator Mini-Forum */}
-        <CreatorMiniForum creatorId={creator.id} isCreatorOwner={isCreatorOwner} />
+        {/* TODO: Creator Mini-Forum später hinzufügen */}
 
       </div>
     </div>
