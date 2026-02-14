@@ -102,6 +102,14 @@ export default function MediaSlotEditor({ slot }: { slot: PromoSlot }) {
     return match ? match[1] : url // Falls nur ID eingegeben wurde
   }
 
+  const getSlotLabel = (slotId: number) => {
+    if (slotId === 5) return 'Highlight Box'
+    if (slotId === 99) return 'Welcome Text'
+    if (slotId === 201) return 'Kuration Zusage-Mail'
+    if (slotId === 202) return 'Kuration Ablehnungs-Mail'
+    return `SLOT_${slotId.toString().padStart(2, '0')}`
+  }
+
   return (
     <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       
@@ -109,7 +117,7 @@ export default function MediaSlotEditor({ slot }: { slot: PromoSlot }) {
       <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-3">
         <div>
           <h3 className="text-xl font-black uppercase">
-            {slot.slot_id === 5 ? 'Highlight Box' : slot.slot_id === 99 ? 'Welcome Text' : `SLOT_0${slot.slot_id}`}
+            {getSlotLabel(slot.slot_id)}
           </h3>
           <p className="text-[10px] font-mono opacity-40">slot_id: {slot.slot_id}</p>
         </div>

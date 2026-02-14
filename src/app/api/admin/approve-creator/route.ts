@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { CURATION_TEMPLATE_DEFAULTS, loadTemplateBySlot, sendTransactionalMail } from '@/lib/curation-email'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
       .from('songs')
       .update({ is_probe: false })
       .eq('user_id', user_id)
+
+    const { data: creatorEmail } = await supabase.rpc('get_email_for_user', { user_uuid: user_id })
     
     // Send notification to creator
     await supabase
@@ -68,12 +71,24 @@ export async function POST(request: Request) {
         sender_id: null,
         message_type: 'system',
         subject: '🎉 Du wurdest freigeschaltet!',
-        content: `Glückwunsch! Dein Creator-Profil wurde freigegeben. Du kannst jetzt dein Profil vervollständigen und weitere Songs hochladen. Besuche: /profile-builder`,
+        content: 'Glückwunsch! Dein Creator-Profil wurde freigegeben. Bitte richte jetzt dein Profil ein: /profile-builder',
         status: 'unread'
       })
-    
-    // TODO: Send Email via Resend
-    // await sendApprovalEmail(user_id, profile.artist_name)
+
+    const approvalTemplate = await loadTemplateBySlot(
+      supabase,
+      CURATION_TEMPLATE_DEFAULTS.approval.slotId,
+      CURATION_TEMPLATE_DEFAULTS.approval.subject,
+      CURATION_TEMPLATE_DEFAULTS.approval.body
+    )
+
+    const approvalText = `${approvalTemplate.body}\n\nNächster Schritt: Profil einrichten unter /profile-builder`
+    await sendTransactionalMail({
+      to: creatorEmail || '',
+      subject: approvalTemplate.subject,
+      text: approvalText,
+      mediaUrl: approvalTemplate.mediaUrl,
+    })
     
     return NextResponse.redirect(new URL('/admin/applications', request.url))
     

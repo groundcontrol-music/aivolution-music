@@ -14,13 +14,29 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
   const isAdmin = userRole === 'admin'
   
   // Fetch Creator Profile by slug (artist_name_slug)
-  // WICHTIG: Auch 'user' mit onboarding_status='submitted' zulassen (für Admin-Preview)
-  const { data: creator, error } = await supabase
+  // Robust: nicht mit .single() abbrechen, falls Daten historisch inkonsistent sind
+  const { data: creatorRows, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('artist_name_slug', slug)
     .or('role.eq.creator,role.eq.user') // Creator ODER User (pending)
-    .single()
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  let creator = creatorRows?.[0]
+
+  // Fallback: alte Datensätze ohne/mit falschem slug per artist_name matchen
+  if (!creator) {
+    const fallbackName = slug.replace(/-/g, ' ')
+    const { data: fallbackRows } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('artist_name', fallbackName)
+      .or('role.eq.creator,role.eq.user')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+    creator = fallbackRows?.[0]
+  }
 
   if (error || !creator) {
     notFound()
@@ -77,8 +93,8 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
               </span>
             </div>
             <div className="flex gap-3">
-              <form action={`/api/admin/approve-profile`} method="POST">
-                <input type="hidden" name="userId" value={creator.id} />
+              <form action={`/api/admin/approve-creator`} method="POST">
+                <input type="hidden" name="user_id" value={creator.id} />
                 <button 
                   type="submit"
                   className="bg-green-600 text-white px-6 py-2 font-black uppercase text-xs hover:bg-green-700 transition-colors"
@@ -86,8 +102,8 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
                   ✅ FREISCHALTEN
                 </button>
               </form>
-              <form action={`/api/admin/reject-profile`} method="POST">
-                <input type="hidden" name="userId" value={creator.id} />
+              <form action={`/api/admin/reject-creator`} method="POST">
+                <input type="hidden" name="user_id" value={creator.id} />
                 <button 
                   type="submit"
                   className="bg-red-600 text-white px-6 py-2 font-black uppercase text-xs hover:bg-red-700 transition-colors"

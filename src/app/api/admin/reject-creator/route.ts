@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { CURATION_TEMPLATE_DEFAULTS, loadTemplateBySlot, sendTransactionalMail } from '@/lib/curation-email'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -35,8 +36,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
     
-    // Get email
-    const { data: email } = await supabase.rpc('get_email_for_user', { user_uuid: user_id })
+    // Get email before deletion
+    const { data: creatorEmail } = await supabase.rpc('get_email_for_user', { user_uuid: user_id })
+
+    const rejectionTemplate = await loadTemplateBySlot(
+      supabase,
+      CURATION_TEMPLATE_DEFAULTS.rejection.slotId,
+      CURATION_TEMPLATE_DEFAULTS.rejection.subject,
+      CURATION_TEMPLATE_DEFAULTS.rejection.body
+    )
+
+    await sendTransactionalMail({
+      to: creatorEmail || '',
+      subject: rejectionTemplate.subject,
+      text: rejectionTemplate.body,
+      mediaUrl: rejectionTemplate.mediaUrl,
+    })
     
     // Delete songs first (because of foreign key)
     await supabase
@@ -53,9 +68,6 @@ export async function POST(request: Request) {
     // Delete auth user (DSGVO: complete data deletion)
     // Note: This requires admin privileges on auth.users
     // Alternative: Set profile to 'rejected' status instead of deleting
-    
-    // TODO: Send Rejection Email via Resend
-    // await sendRejectionEmail(email, profile.artist_name)
     
     return NextResponse.redirect(new URL('/admin/applications', request.url))
     
