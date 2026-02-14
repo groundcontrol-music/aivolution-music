@@ -21,7 +21,7 @@ const navItems = [
   { name: 'Filter', icon: Shield, href: '/admin/filters', color: 'text-red-600' },
   { name: 'Meldungen', icon: Flag, href: '/admin/reports', color: 'text-red-600' },
   { name: 'Media', icon: ImageIcon, href: '/admin/media', color: 'text-black' },
-  { name: 'Postamt', icon: Mail, href: '/admin/postamt', color: 'text-black' },
+  { name: 'Logbuch', icon: Mail, href: '/admin/postamt', color: 'text-black' },
   { name: 'Terms', icon: Settings, href: '/admin/terms', color: 'text-black' },
   { name: 'Finanzen', icon: DollarSign, href: '/admin/finanzen', color: 'text-black' },
 ];
