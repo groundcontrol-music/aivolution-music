@@ -158,11 +158,6 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ us
                 <button 
                   type="submit"
                   className="w-full bg-red-600 text-white py-4 font-black uppercase text-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  onClick={(e) => {
-                    if (!confirm('Bewerbung wirklich ablehnen? Alle Daten werden gelöscht!')) {
-                      e.preventDefault()
-                    }
-                  }}
                 >
                   <XCircle size={20} />
                   Ablehnen & Email senden
