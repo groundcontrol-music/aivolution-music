@@ -5,8 +5,8 @@ import {
   AlertTriangle, 
   Mail, 
   Image as ImageIcon, 
+  Activity,
   User, 
-  CheckCircle, 
   Settings, 
   DollarSign,
   Shield,
@@ -17,7 +17,7 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { name: 'Contest', icon: Trophy, href: '/admin/contest', color: 'text-black' },
-  { name: 'Kuration', icon: CheckCircle, href: '/admin/applications', color: 'text-black' },
+  { name: 'Kontrolle', icon: Activity, href: '/admin/kontrolle', color: 'text-black' },
   { name: 'Filter', icon: Shield, href: '/admin/filters', color: 'text-red-600' },
   { name: 'Meldungen', icon: Flag, href: '/admin/reports', color: 'text-red-600' },
   { name: 'Media', icon: ImageIcon, href: '/admin/media', color: 'text-black' },

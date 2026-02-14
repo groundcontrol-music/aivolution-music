@@ -7,14 +7,14 @@ export default async function AdminNavWithBadges() {
   // Fetch Badge Counts
   const badges: { [key: string]: { count: number; type: 'success' | 'warning' | 'danger' } } = {}
 
-  // Kuration: Neue Bewerbungen
+  // Kontrolle: Neue Bewerbungen
   const { count: applicationCount } = await supabase
     .from('profiles')
     .select('*', { count: 'exact', head: true })
     .eq('onboarding_status', 'submitted')
   
   if (applicationCount && applicationCount > 0) {
-    badges['/admin/applications'] = { count: applicationCount, type: 'success' }
+    badges['/admin/kontrolle'] = { count: applicationCount, type: 'success' }
   }
 
   // Meldungen: Offene Reports
