@@ -104,7 +104,7 @@ export default function CreatorProfileClient({
                       {creator.artist_name}
                     </h1>
                     <p className="text-sm font-bold uppercase tracking-wider text-red-600">
-                      BEAT ARTIST
+                      AI MUSIC CREATOR
                     </p>
                   </div>
                   {isCreatorOwner && (
@@ -130,7 +130,7 @@ export default function CreatorProfileClient({
 
                 {/* Social Links */}
                 {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
                       <a
                         key={key}
@@ -143,6 +143,18 @@ export default function CreatorProfileClient({
                         <span>{socialIcons[key] || '🔗'}</span>
                       </a>
                     ))}
+                  </div>
+                )}
+
+                {/* Secret Lounge Button (nur für eingeloggte User) */}
+                {isCreatorOwner && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => alert('Secret Lounge Feature kommt bald!')}
+                      className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-red-600 text-white font-black uppercase text-xs rounded-full transition-colors"
+                    >
+                      🔒 SECRET LOUNGE
+                    </button>
                   </div>
                 )}
 
@@ -177,39 +189,39 @@ export default function CreatorProfileClient({
               </div>
             </div>
 
-            {/* RIGHT: THE LAB (Featured Songs) */}
+            {/* RIGHT: THE SHOW (YouTube/TikTok Media) */}
             <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
               <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-4 text-red-600">
-                // THE LAB
+                // THE SHOW
               </h2>
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {featuredSongs.slice(0, 3).map((song) => (
-                  <div 
-                    key={song.id}
-                    className="bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
-                    onClick={() => {
-                      const { play } = require('@/contexts/PlayerContext')
-                      // Play song
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg border-2 border-black bg-zinc-200 flex-shrink-0 overflow-hidden">
-                        {song.cover_url ? (
-                          <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
-                        )}
+                {videoLinks.length > 0 ? (
+                  videoLinks.map((videoUrl, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedVideo(videoUrl)}
+                      className="w-full bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4 hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 rounded-lg border-2 border-black bg-red-600 flex-shrink-0 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                          <Video size={28} />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className="font-bold text-sm uppercase text-gray-900">
+                            {getYouTubeEmbed(videoUrl) ? '▶️ YouTube Video' : '🎬 TikTok Video'}
+                          </p>
+                          <p className="text-xs text-gray-600">Klicken zum Abspielen</p>
+                        </div>
+                        <ExternalLink size={20} className="text-red-600" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm uppercase truncate">{song.title}</p>
-                        <p className="text-xs text-gray-600">WAV • {song.duration || '3:45'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-black text-red-600">€{(song.price || 2.99).toFixed(2)}</p>
-                      </div>
-                    </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <Video size={48} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Keine Videos vorhanden</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 

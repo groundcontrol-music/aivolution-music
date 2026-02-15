@@ -78,7 +78,7 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
     return notFound()
   }
 
-  const isCreatorOwner = user?.id === creator.id
+  const isCreatorOwner = user?.id === creator.id || isAdmin
 
   // Fetch Songs
   let songsQuery = supabase
