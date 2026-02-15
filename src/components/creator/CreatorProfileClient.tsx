@@ -141,8 +141,8 @@ export default function CreatorProfileClient({
                 </div>
               </div>
 
-              {/* RIGHT: Info */}
-              <div className="flex-1 min-w-0">
+              {/* RIGHT: Info + Aivo */}
+              <div className="flex-1 min-w-0 relative">
                 
                 {/* Name + Small Edit Icon */}
                 <div className="flex items-start gap-4 mb-4">
@@ -175,6 +175,15 @@ export default function CreatorProfileClient({
                     ))}
                   </div>
                 )}
+
+                {/* AIVO ROBOT - rechts unten am Banner */}
+                <div className="absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32">
+                  <img 
+                    src="/aivo-robot.png" 
+                    alt="Aivo Assistant" 
+                    className="w-full h-full object-contain drop-shadow-lg"
+                  />
+                </div>
 
               </div>
 
