@@ -59,8 +59,8 @@ export default function CreatorProfileClient({
       <div className="min-h-screen bg-zinc-50">
         
         {/* HERO SECTION */}
-        <div className="bg-white border-b-4 border-black">
-          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+        <div className="bg-white border-b-4 border-black relative overflow-visible">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 relative">
             
             <div className="flex flex-col md:flex-row gap-8 items-start">
               
@@ -176,17 +176,17 @@ export default function CreatorProfileClient({
                   </div>
                 )}
 
-                {/* AIVO ROBOT - rechts unten am Banner */}
-                <div className="absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32">
-                  <img 
-                    src="/aivo-robot.png" 
-                    alt="Aivo Assistant" 
-                    className="w-full h-full object-contain drop-shadow-lg"
-                  />
-                </div>
-
               </div>
 
+            </div>
+
+            {/* AIVO ROBOT - rechts unten an der Bannerlinie, ~50% Bannerhöhe */}
+            <div className="absolute bottom-0 right-4 md:right-8 h-[140px] md:h-[200px] w-auto pointer-events-none">
+              <img 
+                src="/aivo-robot.png" 
+                alt="Aivo Assistant" 
+                className="h-full w-auto object-contain object-bottom drop-shadow-lg"
+              />
             </div>
 
           </div>
