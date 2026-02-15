@@ -81,9 +81,10 @@ export default function CreatorProfileClient({
             
             <div className="flex flex-col md:flex-row gap-8 items-start">
               
-              {/* LEFT: Avatar */}
+              {/* LEFT: Avatar + Small Thumbnails */}
               <div className="flex-shrink-0">
-                <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-black shadow-[12px_12px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100">
+                {/* Main Avatar */}
+                <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-black shadow-[12px_12px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
                   {creator.avatar_url ? (
                     <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
                   ) : (
@@ -91,6 +92,42 @@ export default function CreatorProfileClient({
                       {creator.artist_name?.charAt(0).toUpperCase()}
                     </div>
                   )}
+                </div>
+
+                {/* 3 Small Round Thumbnails */}
+                <div className="flex justify-center gap-2 md:gap-3">
+                  
+                  {/* Secret Lounge (nur für Owner/Admin) */}
+                  {isCreatorOwner && (
+                    <button
+                      onClick={() => alert('Secret Lounge Feature kommt bald!')}
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-black hover:bg-red-600 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] hover:scale-105 transform"
+                      title="Secret Lounge"
+                    >
+                      🔒
+                    </button>
+                  )}
+
+                  {/* Thumbnail 1: Featured Song Cover */}
+                  {featuredSongs[0] && (
+                    <ThumbnailCircle
+                      imageUrl={featuredSongs[0].cover_url}
+                      fallbackIcon="🎵"
+                      onClick={() => {}}
+                      title={featuredSongs[0].title}
+                    />
+                  )}
+
+                  {/* Thumbnail 2: Featured Song Cover */}
+                  {featuredSongs[1] && (
+                    <ThumbnailCircle
+                      imageUrl={featuredSongs[1].cover_url}
+                      fallbackIcon="🎵"
+                      onClick={() => {}}
+                      title={featuredSongs[1].title}
+                    />
+                  )}
+
                 </div>
               </div>
 
@@ -130,7 +167,7 @@ export default function CreatorProfileClient({
 
                 {/* Social Links */}
                 {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2">
                     {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
                       <a
                         key={key}
@@ -143,18 +180,6 @@ export default function CreatorProfileClient({
                         <span>{socialIcons[key] || '🔗'}</span>
                       </a>
                     ))}
-                  </div>
-                )}
-
-                {/* Secret Lounge Button (nur für eingeloggte User) */}
-                {isCreatorOwner && (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => alert('Secret Lounge Feature kommt bald!')}
-                      className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-red-600 text-white font-black uppercase text-xs rounded-full transition-colors"
-                    >
-                      🔒 SECRET LOUNGE
-                    </button>
                   </div>
                 )}
 
