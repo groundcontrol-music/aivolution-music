@@ -100,6 +100,10 @@
 7. **Definition of Done:** Fix gilt erst als "fertig", wenn Code, DB und Runtime-Flow zusammen erfolgreich sind.
 8. **No-Hard-Dependency auf optionale Spalten:** Keine harte Abhängigkeit auf Felder wie `updated_at`, wenn Schema-Drift möglich ist.
 9. **Live-Link-Test:** Der echte Endlink des Flows (z.B. Creator-Profil-URL aus Kuration) muss in der Zielumgebung erfolgreich laden.
+10. **Slug-Konsistenz:** Alle Slugs (URLs) MÜSSEN lowercase sein, erzwungen auf 3 Ebenen:
+    - **Code:** Immer `.toLowerCase()` bei Slug-Generierung
+    - **DB:** CHECK constraint für lowercase in der Tabelle
+    - **Queries:** `.ilike()` statt `.eq()` für case-insensitive Lookups
 
 ## Tech-Stack-Spezifika (Next.js 16 + Codespaces)
 **WICHTIG:** Diese Erkenntnisse sind verifiziert und dürfen NICHT durch veraltete Lösungen ersetzt werden.
