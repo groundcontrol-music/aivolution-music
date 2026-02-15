@@ -86,12 +86,13 @@ ON public.messages(created_at)
 WHERE archived = false AND deleted_at IS NULL;
 
 -- Materialized View für Admin-Dashboard (schnelle Statistiken)
+-- Hinweis: Ohne created_at (optional), nur Status-Zähler
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_admin_stats AS
 SELECT
   COUNT(*) FILTER (WHERE onboarding_status = 'submitted') AS pending_applications,
   COUNT(*) FILTER (WHERE role = 'creator' AND visibility = 'public') AS active_creators,
-  COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS new_signups_7d,
-  MAX(created_at) AS last_signup
+  COUNT(*) AS total_profiles,
+  NOW() AS last_refreshed
 FROM public.profiles;
 
 -- Index für Materialized View Refresh
