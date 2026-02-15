@@ -198,10 +198,12 @@ export default function CreatorProfileClient({
               {shopSongs.map((song) => (
                 <CompactSongCard
                   key={song.id}
+                  songId={song.id}
                   title={song.title}
+                  artist={creator.artist_name}
                   price={song.price || 2.99}
                   coverUrl={song.cover_url}
-                  wavUrl={song.wav_url || song.file_url}
+                  previewUrl={song.mp3_preview_url || song.wav_url || song.file_url}
                   onBuy={() => console.log('Buy:', song.id)}
                 />
               ))}

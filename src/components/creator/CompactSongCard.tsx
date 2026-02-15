@@ -1,23 +1,34 @@
 'use client'
 
 import { Play, ShoppingCart } from 'lucide-react'
-import { useState } from 'react'
+import { usePlayer } from '@/contexts/PlayerContext'
 
 type CompactSongCardProps = {
+  songId: string
   title: string
+  artist: string
   price: number
   coverUrl?: string
-  wavUrl?: string
+  previewUrl?: string
   onBuy?: () => void
 }
 
-export default function CompactSongCard({ title, price, coverUrl, wavUrl, onBuy }: CompactSongCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
+export default function CompactSongCard({ songId, title, artist, price, coverUrl, previewUrl, onBuy }: CompactSongCardProps) {
+  const { play, currentTrack, isPlaying } = usePlayer()
+  const isThisTrackPlaying = currentTrack?.id === songId && isPlaying
 
   const handlePlay = () => {
-    // TODO: Integrate with global audio player
-    console.log('Play:', title, wavUrl)
-    setIsPlaying(!isPlaying)
+    if (!previewUrl) {
+      alert('Vorschau nicht verfügbar')
+      return
+    }
+    play({
+      id: songId,
+      title,
+      artist,
+      preview_url: previewUrl,
+      cover: coverUrl
+    })
   }
 
   return (
@@ -38,12 +49,12 @@ export default function CompactSongCard({ title, price, coverUrl, wavUrl, onBuy 
         )}
         
         {/* Play Button Overlay */}
-        {wavUrl && (
+        {previewUrl && (
           <button
             onClick={handlePlay}
             className="absolute inset-0 bg-black/0 group-hover:bg-black/60 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
           >
-            <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform ${isThisTrackPlaying ? 'bg-green-600 animate-pulse' : 'bg-red-600'}`}>
               <Play className="text-white" fill="white" size={28} />
             </div>
           </button>
