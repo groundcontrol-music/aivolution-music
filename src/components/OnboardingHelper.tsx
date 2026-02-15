@@ -47,9 +47,9 @@ export default function OnboardingHelper() {
     // Speichere: Helper wurde gesehen
     localStorage.setItem(`onboarding_helper_seen_${userId}`, 'true')
     setShow(false)
-    
-    // Navigiere zum Profil-Builder
-    router.push('/profile-builder')
+
+    // Navigiere direkt zum öffentlichen Creator-Profil (Live-Edit dort)
+    router.push('/profile-builder') // profile-builder prüft selbst und leitet weiter zu /creator/[slug]
   }
 
   const handleDismiss = () => {

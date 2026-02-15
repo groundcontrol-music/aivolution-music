@@ -46,6 +46,12 @@ export default function ProfileBuilderPage() {
         .single()
 
       if (profile) {
+        // Wenn Creator schon approved + slug vorhanden: direkt zu öffentlichem Profil
+        if (profile.role === 'creator' && profile.onboarding_status === 'approved' && profile.artist_name_slug) {
+          router.push(`/creator/${profile.artist_name_slug}`)
+          return
+        }
+
         setArtistName(profile.artist_name || '')
         setBio(profile.bio || '')
         setTechStack(profile.tech_stack || '')
@@ -110,8 +116,7 @@ export default function ProfileBuilderPage() {
           bio,
           tech_stack: techStack,
           social_links: socialLinks,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString()
+          avatar_url: avatarUrl
         })
         .eq('id', userId)
 

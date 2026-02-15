@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
-import { Activity, Shield, Bug, Wrench, FileText, Megaphone } from 'lucide-react'
+import { Activity, Shield, Bug, Wrench, FileText, Megaphone, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 export default async function AdminKontrollePage() {
   const supabase = await createClient()
@@ -19,6 +19,19 @@ export default async function AdminKontrollePage() {
     .from('content_filters')
     .select('*', { count: 'exact', head: true })
     .eq('is_active', true)
+
+  const { data: precheckRows } = await supabase
+    .from('system_precheck_status')
+    .select('check_key, status, details, next_step, checked_at')
+    .order('check_key', { ascending: true })
+
+  const precheckList = precheckRows || []
+  const precheckWarns = precheckList.filter((row: any) => row.status === 'WARN')
+  const precheckOk = precheckList.filter((row: any) => row.status === 'OK').length
+  const precheckStatus = precheckList.length === 0 ? 'unknown' : precheckWarns.length > 0 ? 'warn' : 'ok'
+  const precheckCheckedAt = precheckList[0]?.checked_at
+    ? new Date(precheckList[0].checked_at).toLocaleString('de-DE')
+    : null
 
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
@@ -53,6 +66,63 @@ export default async function AdminKontrollePage() {
             <div className="text-4xl font-black text-black mt-1">{activeFilters || 0}</div>
             <p className="text-xs mt-2">Inhaltsfilter gegen Missbrauch.</p>
           </div>
+        </div>
+
+        <div className="bg-white border-2 border-black rounded-xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-xs font-black uppercase opacity-50">System-Precheck (DB/RLS/Storage)</div>
+              <div className="mt-2 flex items-center gap-2">
+                {precheckStatus === 'ok' && (
+                  <>
+                    <CheckCircle2 className="text-green-600" size={18} />
+                    <span className="text-lg font-black text-green-600">GRUEN</span>
+                  </>
+                )}
+                {precheckStatus === 'warn' && (
+                  <>
+                    <AlertTriangle className="text-red-600" size={18} />
+                    <span className="text-lg font-black text-red-600">GELB/ROT</span>
+                  </>
+                )}
+                {precheckStatus === 'unknown' && (
+                  <>
+                    <AlertTriangle className="text-zinc-500" size={18} />
+                    <span className="text-lg font-black text-zinc-600">NOCH KEIN LAUF</span>
+                  </>
+                )}
+              </div>
+              <p className="text-xs mt-2">
+                {precheckStatus === 'unknown'
+                  ? 'Fuehre SQL_PRECHECK.sql einmal im Supabase SQL Editor aus.'
+                  : `${precheckWarns.length} WARN / ${precheckOk} OK`}
+              </p>
+              {precheckCheckedAt && (
+                <p className="text-[11px] opacity-60 mt-1">Zuletzt geprueft: {precheckCheckedAt}</p>
+              )}
+            </div>
+            <a
+              href="/admin/kontrolle"
+              className="shrink-0 bg-black text-white px-3 py-2 text-[11px] font-black uppercase rounded-sm hover:bg-red-600 transition-colors"
+            >
+              Neu laden
+            </a>
+          </div>
+
+          {precheckWarns.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {precheckWarns.slice(0, 5).map((row: any) => (
+                <div key={row.check_key} className="border border-red-300 bg-red-50 rounded-sm p-2">
+                  <p className="text-[11px] font-black uppercase text-red-700">{row.check_key}</p>
+                  <p className="text-xs">{row.details}</p>
+                  {row.next_step && <p className="text-[11px] mt-1 font-mono opacity-80">{row.next_step}</p>}
+                </div>
+              ))}
+              {precheckWarns.length > 5 && (
+                <p className="text-[11px] opacity-60">... und {precheckWarns.length - 5} weitere WARN-Eintraege.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

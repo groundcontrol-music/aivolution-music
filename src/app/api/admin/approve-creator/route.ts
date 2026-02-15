@@ -4,6 +4,10 @@ import { CURATION_TEMPLATE_DEFAULTS, loadTemplateBySlot, sendTransactionalMail }
 
 export async function POST(request: Request) {
   const supabase = await createClient()
+  const isSafeAdminPath = (value: string | null) => {
+    if (!value) return false
+    return value.startsWith('/admin/') && !value.includes('://')
+  }
   
   // Check admin
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,6 +23,8 @@ export async function POST(request: Request) {
   // Get user_id from form
   const formData = await request.formData()
   const user_id = formData.get('user_id') as string
+  const returnTo = formData.get('return_to') as string | null
+  const redirectPath = isSafeAdminPath(returnTo) ? returnTo : '/admin/kontrolle'
   
   if (!user_id) {
     return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
@@ -41,6 +47,7 @@ export async function POST(request: Request) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
+    const creatorProfilePath = `/creator/${slug}`
     
     // Approve creator
     const { error: updateError } = await supabase
@@ -71,7 +78,7 @@ export async function POST(request: Request) {
         sender_id: null,
         message_type: 'system',
         subject: '🎉 Du wurdest freigeschaltet!',
-        content: 'Glückwunsch! Dein Creator-Profil wurde freigegeben. Bitte richte jetzt dein Profil ein: /profile-builder',
+        content: `Glückwunsch! Dein Creator-Profil wurde freigegeben. Richte dein Profil jetzt direkt live ein: ${creatorProfilePath}`,
         status: 'unread'
       })
 
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
       CURATION_TEMPLATE_DEFAULTS.approval.body
     )
 
-    const approvalText = `${approvalTemplate.body}\n\nNächster Schritt: Profil einrichten unter /profile-builder`
+    const approvalText = `${approvalTemplate.body}\n\nNächster Schritt: Profil direkt live einrichten unter ${creatorProfilePath}`
     await sendTransactionalMail({
       to: creatorEmail || '',
       subject: approvalTemplate.subject,
@@ -90,7 +97,7 @@ export async function POST(request: Request) {
       mediaUrl: approvalTemplate.mediaUrl,
     })
     
-    return NextResponse.redirect(new URL('/admin/applications', request.url))
+    return NextResponse.redirect(new URL(redirectPath, request.url), 303)
     
   } catch (error: any) {
     console.error('Approve error:', error)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Flag, Trash2, Edit2, Send } from 'lucide-react'
+import { MessageCircle, Flag, Trash2, Send } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -48,7 +48,7 @@ export default function CreatorMiniForum({ creatorId, isCreatorOwner }: { creato
       `)
       .eq('creator_id', creatorId)
       .eq('is_deleted', false)
-      .is('parent_id', null) // Nur Top-Level Posts (keine Replies)
+      .is('parent_id', null)
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -134,7 +134,6 @@ export default function CreatorMiniForum({ creatorId, isCreatorOwner }: { creato
         <span className="text-xs font-bold uppercase opacity-40 ml-auto">{posts.length} Beiträge</span>
       </div>
 
-      {/* New Post Form */}
       {user && (
         <div className="mb-6 bg-zinc-50 border border-black rounded-sm p-4">
           <textarea
@@ -163,13 +162,11 @@ export default function CreatorMiniForum({ creatorId, isCreatorOwner }: { creato
         </div>
       )}
 
-      {/* Posts List */}
       <div className="space-y-4">
         {posts.length > 0 ? (
           posts.map((post) => (
             <div key={post.id} className="border-l-4 border-red-600 pl-4 py-2">
               <div className="flex items-start gap-3">
-                {/* Avatar */}
                 <div className="w-10 h-10 bg-zinc-200 rounded-full border border-black flex-shrink-0 overflow-hidden">
                   {post.author?.avatar_url ? (
                     <img src={post.author.avatar_url} className="w-full h-full object-cover" />
@@ -180,23 +177,21 @@ export default function CreatorMiniForum({ creatorId, isCreatorOwner }: { creato
                   )}
                 </div>
 
-                {/* Content */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-black text-sm uppercase">{post.author?.artist_name || 'User'}</span>
                     <span className="text-[10px] font-mono opacity-50">
-                      {new Date(post.created_at).toLocaleString('de-DE', { 
-                        day: '2-digit', 
-                        month: 'short', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
+                      {new Date(post.created_at).toLocaleString('de-DE', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </span>
                     {post.is_edited && <span className="text-[9px] italic opacity-40">(bearbeitet)</span>}
                   </div>
                   <p className="text-sm font-medium leading-relaxed">{post.content}</p>
 
-                  {/* Actions */}
                   <div className="flex gap-3 mt-2">
                     {(isCreatorOwner || user?.id === post.author_id) && (
                       <button

@@ -74,13 +74,32 @@
 - Moderation: Alle Creator-Daten sehen, editieren, pausieren
 - Admin: Vollzugriff + Moderatoren-Verwaltung
 
-## Die 6 Master-Fragen für jede Code-Generierung:
-1. **Scaling (Performance):** Funktioniert dieser Code auch bei 100.000 Datenbank-Einträgen (Pagination/Indizes)?
-2. **Security (Bad User):** Sind die Supabase RLS Policies so gesetzt, dass kein Nutzer fremde Daten sehen oder löschen kann?
-3. **Murphy's Law (Stabilität):** Verbleiben Datenleichen, wenn der User mitten im Prozess den Browser schließt?
-4. **Tech-Stack (Aktualität):** Ist das State-of-the-Art Next.js (App Router) oder veralteter Code?
-5. **Brand-Identity (Design):** Entspricht das UI dem brutalistischen Aivolution-Stil (2.5rem Corners)?
-6. **Legal-Check (Rechtssicherheit):** Wird diese Creator-Funktion im Einklang mit relevanten Gesetzen erstellt? (Besonders: Monitoring der 30-Verkäufe-Grenze pro Jahr für die Meldepflicht an Behörden).
+## Masterfragen v2 (verbindlich vor jedem Feature/Fix)
+1. **Scaling (Performance):** Funktioniert der Ablauf auch mit 100.000+ Datensätzen (Pagination, Indizes, schlanke Queries)?
+2. **Security (RLS):** Sind RLS-Policies strikt genug, sodass User nur eigene Daten lesen/ändern können?
+3. **Schema-Realität:** Existieren alle benötigten Tabellen/Spalten/Funktionen/Policies wirklich in der Ziel-DB (kein "angenommenes Schema")?
+4. **Murphy's Law (Stabilität):** Was passiert bei Abbruch mitten im Prozess (Browser zu, Upload abgebrochen, Timeout)?
+5. **Idempotenz:** Ist der Prozess erneut ausführbar, ohne doppelte Datensätze/Seiteneffekte zu erzeugen?
+6. **Observability/Debug:** Gibt es klare Logs/Statusmeldungen, damit Fehler schnell lokalisierbar sind?
+7. **Tech-Stack-Fit:** Ist die Umsetzung mit aktuellem Next.js App Router + Supabase Best Practices gebaut?
+8. **Build-Integrität:** Sind alle Pfade/Dateinamen/Imports korrekt (keine Tippfehler, keine Case-/Leerzeichen-Fallen)?
+9. **UX-Flow (schlank):** Ist der Nutzerfluss maximal einfach (wenige Schritte, klare CTAs, eindeutige Rückmeldungen)?
+10. **Brand-Identity:** Entspricht UI/UX dem Aivolution-Stil (brutalistisch, hochwertig, 2.5rem Corners)?
+11. **Legal/Compliance:** Sind DSGVO/TMG/Urheberrechts-Risiken berücksichtigt (Datensparsamkeit, Nachweisbarkeit, Löschpfade)?
+12. **Betrieb/Kosten:** Ist die Lösung ressourcenschonend und für den aktuellen Budget-Rahmen tragfähig?
+13. **Schema-Kompatibilität:** Nutzt der Code nur DB-Felder/Funktionen, die in der Zielumgebung verifiziert existieren (z.B. `updated_at` nicht blind voraussetzen)?
+14. **Link-Integrität:** Sind kritische Zielpfade (z.B. `/creator/[slug]`) mit Fallback robust und in Runtime wirklich erreichbar?
+
+## Verbindliche Preflight-Routine (vor "Fertig")
+1. **DB-Precheck:** `information_schema`, `pg_proc`, `pg_policies` prüfen, ob alle benötigten Objekte existieren.
+2. **Idempotente SQL:** Nur mit `IF EXISTS` / `IF NOT EXISTS` arbeiten, damit wiederholte Ausführung sicher ist.
+3. **Datei-/Import-Check:** Prüfen, ob alle referenzierten Dateien/Ordner wirklich vorhanden sind.
+4. **Routen-Check:** Alle betroffenen Pfade manuell gegenklicken (Happy Path + 1 Fehlerpfad).
+5. **Lint/Build-Check:** Keine neuen Lint-/Build-Fehler hinterlassen.
+6. **RLS-Quickcheck:** Für betroffene Tabellen mindestens Owner-, Fremduser- und Admin-Fall denken.
+7. **Definition of Done:** Fix gilt erst als "fertig", wenn Code, DB und Runtime-Flow zusammen erfolgreich sind.
+8. **No-Hard-Dependency auf optionale Spalten:** Keine harte Abhängigkeit auf Felder wie `updated_at`, wenn Schema-Drift möglich ist.
+9. **Live-Link-Test:** Der echte Endlink des Flows (z.B. Creator-Profil-URL aus Kuration) muss in der Zielumgebung erfolgreich laden.
 
 ## Tech-Stack-Spezifika (Next.js 16 + Codespaces)
 **WICHTIG:** Diese Erkenntnisse sind verifiziert und dürfen NICHT durch veraltete Lösungen ersetzt werden.

@@ -4,6 +4,10 @@ import { CURATION_TEMPLATE_DEFAULTS, loadTemplateBySlot, sendTransactionalMail }
 
 export async function POST(request: Request) {
   const supabase = await createClient()
+  const isSafeAdminPath = (value: string | null) => {
+    if (!value) return false
+    return value.startsWith('/admin/') && !value.includes('://')
+  }
   
   // Check admin
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,6 +23,8 @@ export async function POST(request: Request) {
   // Get user_id from form
   const formData = await request.formData()
   const user_id = formData.get('user_id') as string
+  const returnTo = formData.get('return_to') as string | null
+  const redirectPath = isSafeAdminPath(returnTo) ? returnTo : '/admin/kontrolle'
   
   if (!user_id) {
     return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
@@ -69,7 +75,7 @@ export async function POST(request: Request) {
     // Note: This requires admin privileges on auth.users
     // Alternative: Set profile to 'rejected' status instead of deleting
     
-    return NextResponse.redirect(new URL('/admin/applications', request.url))
+    return NextResponse.redirect(new URL(redirectPath, request.url), 303)
     
   } catch (error: any) {
     console.error('Reject error:', error)

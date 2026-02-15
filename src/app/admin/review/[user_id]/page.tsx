@@ -55,6 +55,12 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ us
       return { ...song, preview_url: data?.signedUrl || null }
     })
   )
+
+  const profileSlug =
+    applicant.artist_name_slug ||
+    (applicant.artist_name
+      ? String(applicant.artist_name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      : user_id)
   
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
@@ -144,6 +150,7 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ us
             <div className="flex gap-4 pt-6 border-t-2 border-black">
               <form action="/api/admin/approve-creator" method="POST" className="flex-1">
                 <input type="hidden" name="user_id" value={user_id} />
+                <input type="hidden" name="return_to" value="/admin/kontrolle" />
                 <button 
                   type="submit"
                   className="w-full bg-green-600 text-white py-4 font-black uppercase text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
@@ -155,6 +162,7 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ us
               
               <form action="/api/admin/reject-creator" method="POST" className="flex-1">
                 <input type="hidden" name="user_id" value={user_id} />
+                <input type="hidden" name="return_to" value="/admin/kontrolle" />
                 <button 
                   type="submit"
                   className="w-full bg-red-600 text-white py-4 font-black uppercase text-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
@@ -171,7 +179,7 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ us
               <CheckCircle className="mx-auto mb-2 text-green-600" size={32} />
               <p className="font-black uppercase text-sm">Bereits freigegeben</p>
               <a 
-                href={`/creator/${applicant.artist_name_slug}`}
+                href={`/creator/${profileSlug}`}
                 className="text-xs text-green-600 underline mt-2 inline-block"
               >
                 → Öffentliches Profil ansehen

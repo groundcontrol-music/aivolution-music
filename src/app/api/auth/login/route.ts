@@ -44,5 +44,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  return NextResponse.json({ success: true, user: data.user })
+  // Smart Redirect: approved creator → direkt zu eigenem Profil
+  let redirectTarget = '/'
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, onboarding_status, artist_name_slug')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profile?.role === 'creator' && profile?.onboarding_status === 'approved' && profile?.artist_name_slug) {
+      redirectTarget = `/creator/${profile.artist_name_slug}`
+    } else if (!profile?.onboarding_status || profile?.onboarding_status === 'pending') {
+      redirectTarget = '/onboarding'
+    }
+  }
+
+  return NextResponse.json({ success: true, user: data.user, redirect: redirectTarget })
 }

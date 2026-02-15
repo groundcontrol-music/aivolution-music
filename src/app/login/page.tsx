@@ -23,7 +23,8 @@ export default function LoginPage() {
     })
 
     if (response.ok) {
-      window.location.href = '/'
+      const { redirect } = await response.json()
+      window.location.href = redirect || '/'
     } else {
       const { error } = await response.json()
       alert(error || 'Login fehlgeschlagen')

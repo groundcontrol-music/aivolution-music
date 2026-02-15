@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { BookOpenText, Plus, Trash2, CheckCircle2, Circle } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 type Category = 'Wartung' | 'Code' | 'Werbung' | 'To do' | 'Idee' | 'Rechtliches'
 
@@ -14,7 +15,16 @@ type LogEntry = {
   createdAt: string
 }
 
+type PrecheckRow = {
+  check_key: string
+  details: string
+  next_step: string | null
+  checked_at: string
+}
+
 const STORAGE_KEY = 'aivolution_admin_logbuch_v1'
+const STORAGE_BACKUP_KEY = 'aivolution_admin_logbuch_backup_v1'
+const LEGACY_STORAGE_KEYS = ['aivolution_admin_logbuch', 'admin_logbuch']
 const CATEGORIES: Category[] = ['Wartung', 'Code', 'Werbung', 'To do', 'Idee', 'Rechtliches']
 
 function makeId() {
@@ -22,25 +32,58 @@ function makeId() {
 }
 
 export default function AdminLogbuchPage() {
+  const supabase = createClient()
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [category, setCategory] = useState<Category>('To do')
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as LogEntry[]
-      setEntries(Array.isArray(parsed) ? parsed : [])
+      if (raw) {
+        const parsed = JSON.parse(raw) as LogEntry[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEntries(parsed)
+          return
+        }
+
+        const backupRaw = localStorage.getItem(STORAGE_BACKUP_KEY)
+        if (backupRaw) {
+          const backupParsed = JSON.parse(backupRaw) as LogEntry[]
+          if (Array.isArray(backupParsed) && backupParsed.length > 0) {
+            setEntries(backupParsed)
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(backupParsed))
+            return
+          }
+        }
+      }
+
+      // Fallback: alte Schluessel einmalig uebernehmen
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        const legacyRaw = localStorage.getItem(legacyKey)
+        if (!legacyRaw) continue
+        const legacyParsed = JSON.parse(legacyRaw) as LogEntry[]
+        if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+          setEntries(legacyParsed)
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(legacyParsed))
+          break
+        }
+      }
     } catch {
       setEntries([])
+    } finally {
+      setHydrated(true)
     }
   }, [])
 
   useEffect(() => {
+    if (!hydrated) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }, [entries])
+    localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(entries))
+  }, [entries, hydrated])
 
   const grouped = useMemo(() => {
     return CATEGORIES.map((cat) => ({
@@ -74,6 +117,57 @@ export default function AdminLogbuchPage() {
     setEntries((prev) => prev.filter((e) => e.id !== id))
   }
 
+  const importPrecheckWarns = async () => {
+    setImporting(true)
+    try {
+      const { data, error } = await supabase
+        .from('system_precheck_status')
+        .select('check_key, details, next_step, checked_at')
+        .eq('status', 'WARN')
+        .order('check_key', { ascending: true })
+
+      if (error) throw error
+
+      const warnRows = (data || []) as PrecheckRow[]
+      if (warnRows.length === 0) {
+        alert('Keine WARN-Eintraege gefunden.')
+        return
+      }
+
+      const existingTitles = new Set(entries.map((e) => e.title))
+      const newItems: LogEntry[] = warnRows
+        .map((row) => {
+          const titleValue = `Precheck: ${row.check_key}`
+          const noteParts = [row.details]
+          if (row.next_step) noteParts.push(`Naechster Schritt: ${row.next_step}`)
+          noteParts.push(`Geprueft: ${new Date(row.checked_at).toLocaleString('de-DE')}`)
+
+          return {
+            id: makeId(),
+            title: titleValue,
+            note: noteParts.join('\n'),
+            category: 'Wartung' as Category,
+            done: false,
+            createdAt: new Date().toISOString(),
+          }
+        })
+        .filter((item) => !existingTitles.has(item.title))
+
+      if (newItems.length === 0) {
+        alert('Alle WARN-Eintraege sind bereits im Logbuch vorhanden.')
+        return
+      }
+
+      setEntries((prev) => [...newItems, ...prev])
+      alert(`${newItems.length} WARN-Eintraege als Wartung importiert.`)
+    } catch (error: any) {
+      const msg = error?.message || 'Import fehlgeschlagen.'
+      alert(`Fehler beim Import: ${msg}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const openCount = entries.filter((e) => !e.done).length
 
   return (
@@ -96,6 +190,13 @@ export default function AdminLogbuchPage() {
             <span>Offen:</span>
             <span className="text-red-600">{openCount}</span>
           </div>
+          <button
+            onClick={importPrecheckWarns}
+            disabled={importing}
+            className="mt-3 ml-0 md:ml-3 inline-flex items-center gap-2 bg-black text-white border-2 border-black px-3 py-2 rounded-lg text-xs font-black uppercase hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {importing ? 'Import laeuft...' : 'Precheck-WARN nach Wartung'}
+          </button>
         </div>
 
         <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 mb-6">
