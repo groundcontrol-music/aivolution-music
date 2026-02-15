@@ -5,7 +5,6 @@ import { Edit, ExternalLink, Play, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
 import ThumbnailCircle from './ThumbnailCircle'
 import CompactSongCard from './CompactSongCard'
-import CreatorLiveEditPanel from './CreatorLiveEditPanel'
 
 type CreatorProfileClientProps = {
   creator: any
@@ -23,7 +22,6 @@ export default function CreatorProfileClient({
   socialIcons
 }: CreatorProfileClientProps) {
   const [isBioModalOpen, setIsBioModalOpen] = useState(false)
-  const [isEditPanelOpen, setIsEditPanelOpen] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
 
   // Helper functions (moved from server component)
@@ -58,21 +56,6 @@ export default function CreatorProfileClient({
         avatarUrl={creator.avatar_url}
       />
 
-      {/* EDIT PANEL (nur für Owner) */}
-      {isCreatorOwner && (
-        <CreatorLiveEditPanel 
-          isOpen={isEditPanelOpen}
-          onClose={() => setIsEditPanelOpen(false)}
-          creatorId={creator.id}
-          initialData={{
-            bio: creator.bio,
-            tech_stack: creator.tech_stack,
-            social_links: socials,
-            avatar_url: creator.avatar_url
-          }}
-        />
-      )}
-
       <div className="min-h-screen bg-zinc-50">
         
         {/* HERO SECTION */}
@@ -94,48 +77,75 @@ export default function CreatorProfileClient({
                   )}
                 </div>
 
-                {/* 3 Small Round Thumbnails */}
-                <div className="flex justify-center gap-2 md:gap-3">
+                {/* 4 Small Round Thumbnails + Social Links darunter */}
+                <div className="flex flex-col items-center gap-4">
                   
-                  {/* Secret Lounge (nur für Owner/Admin) */}
-                  {isCreatorOwner && (
-                    <button
-                      onClick={() => alert('Secret Lounge Feature kommt bald!')}
-                      className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-black hover:bg-red-600 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] hover:scale-105 transform"
-                      title="Secret Lounge"
-                    >
-                      🔒
-                    </button>
-                  )}
+                  {/* Thumbnails Row */}
+                  <div className="flex justify-center gap-2">
+                    
+                    {/* Secret Lounge (nur für Owner/Admin) - ROT */}
+                    {isCreatorOwner && (
+                      <button
+                        onClick={() => alert('Secret Lounge Feature kommt bald!')}
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transform"
+                        title="Secret Lounge"
+                      >
+                        🔒
+                      </button>
+                    )}
 
-                  {/* Thumbnail 1: Featured Song Cover */}
-                  {featuredSongs[0] && (
+                    {/* Thumbnail 1: Featured (editierbar) */}
                     <ThumbnailCircle
-                      imageUrl={featuredSongs[0].cover_url}
+                      imageUrl={featuredSongs[0]?.cover_url}
                       fallbackIcon="🎵"
                       onClick={() => {}}
-                      title={featuredSongs[0].title}
+                      title={featuredSongs[0]?.title || 'Featured'}
                     />
-                  )}
 
-                  {/* Thumbnail 2: Featured Song Cover */}
-                  {featuredSongs[1] && (
+                    {/* Thumbnail 2: Featured (editierbar) */}
                     <ThumbnailCircle
-                      imageUrl={featuredSongs[1].cover_url}
+                      imageUrl={featuredSongs[1]?.cover_url}
                       fallbackIcon="🎵"
                       onClick={() => {}}
-                      title={featuredSongs[1].title}
+                      title={featuredSongs[1]?.title || 'Featured'}
                     />
+
+                    {/* Thumbnail 3: Featured (editierbar) */}
+                    <ThumbnailCircle
+                      imageUrl={featuredSongs[2]?.cover_url}
+                      fallbackIcon="📸"
+                      onClick={() => {}}
+                      title={featuredSongs[2]?.title || 'Featured'}
+                    />
+
+                  </div>
+
+                  {/* Social Links (mittig unter Thumbnails) */}
+                  {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
+                        <a
+                          key={key}
+                          href={socials[key]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors flex items-center justify-center text-lg"
+                          title={key}
+                        >
+                          <span>{socialIcons[key] || '🔗'}</span>
+                        </a>
+                      ))}
+                    </div>
                   )}
 
                 </div>
               </div>
 
-              {/* RIGHT: Info + Social */}
+              {/* RIGHT: Info */}
               <div className="flex-1 min-w-0">
                 
-                {/* Name + Edit Button */}
-                <div className="flex items-start justify-between gap-4 mb-4">
+                {/* Name + Small Edit Icon */}
+                <div className="flex items-start gap-4 mb-4">
                   <div>
                     <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter leading-none mb-2">
                       {creator.artist_name}
@@ -146,39 +156,22 @@ export default function CreatorProfileClient({
                   </div>
                   {isCreatorOwner && (
                     <button
-                      onClick={() => setIsEditPanelOpen(true)}
-                      className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs rounded-full transition-colors"
+                      onClick={() => setIsBioModalOpen(true)}
+                      className="flex-shrink-0 w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors flex items-center justify-center"
+                      title="Profil bearbeiten"
                     >
                       <Edit size={16} />
-                      EDIT
                     </button>
                   )}
                 </div>
+                
                 {/* Tech Stack */}
                 {creator.tech_stack && creator.tech_stack.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex flex-wrap gap-2">
                     {creator.tech_stack.map((tech: string) => (
                       <span key={tech} className="text-xs font-bold uppercase px-3 py-1 bg-red-600 text-white rounded-full">
                         {tech}
                       </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Social Links */}
-                {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
-                      <a
-                        key={key}
-                        href={socials[key]}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-12 h-12 rounded-full border-2 border-black bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors flex items-center justify-center text-xl"
-                        title={key}
-                      >
-                        <span>{socialIcons[key] || '🔗'}</span>
-                      </a>
                     ))}
                   </div>
                 )}
