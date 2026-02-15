@@ -17,19 +17,23 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('terms_accepted_at, onboarding_status')
+          .select('role, onboarding_status, artist_name_slug')
           .eq('id', user.id)
           .single()
 
-        // 1. Terms nicht akzeptiert? -> /onboarding/terms
-        if (!profile?.terms_accepted_at) {
-          targetPath = '/onboarding/terms'
+        // 1. Admin → Startseite (Kommandozentrale)
+        if (profile?.role === 'admin') {
+          targetPath = '/'
         }
-        // 2. Onboarding nicht abgeschlossen? -> /onboarding
-        else if (!profile?.onboarding_status || profile.onboarding_status === 'pending') {
-          targetPath = '/onboarding'
+        // 2. Creator approved → Eigenes Profil
+        else if (profile?.role === 'creator' && profile?.onboarding_status === 'approved' && profile?.artist_name_slug) {
+          targetPath = `/creator/${profile.artist_name_slug}`
         }
-        // 3. Alles fertig -> Startseite
+        // 3. Creator pending → Startseite (mit Wartestatus)
+        else if (profile?.onboarding_status === 'pending' || profile?.onboarding_status === 'submitted') {
+          targetPath = '/'
+        }
+        // 4. Fallback → Startseite
         else {
           targetPath = '/'
         }

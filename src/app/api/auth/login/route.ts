@@ -53,10 +53,17 @@ export async function POST(request: Request) {
       .eq('id', data.user.id)
       .single()
 
-    if (profile?.role === 'creator' && profile?.onboarding_status === 'approved' && profile?.artist_name_slug) {
+    // Admin → Startseite (Kommandozentrale)
+    if (profile?.role === 'admin') {
+      redirectTarget = '/'
+    }
+    // Creator approved → Eigenes Profil
+    else if (profile?.role === 'creator' && profile?.onboarding_status === 'approved' && profile?.artist_name_slug) {
       redirectTarget = `/creator/${profile.artist_name_slug}`
-    } else if (!profile?.onboarding_status || profile?.onboarding_status === 'pending') {
-      redirectTarget = '/onboarding'
+    }
+    // Creator pending/submitted → Startseite (mit Wartestatus)
+    else if (profile?.onboarding_status === 'pending' || profile?.onboarding_status === 'submitted') {
+      redirectTarget = '/'
     }
   }
 
