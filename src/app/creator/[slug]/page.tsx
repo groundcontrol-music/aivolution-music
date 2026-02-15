@@ -116,19 +116,6 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
     youtube: '▶️'
   }
 
-  const getYouTubeEmbed = (input: string) => {
-    const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    const match = input?.match(regex)
-    return match ? `https://www.youtube.com/embed/${match[1]}` : null
-  }
-
-  const getTikTokEmbed = (input: string) => {
-    const match = input?.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/)
-    return match ? `https://www.tiktok.com/embed/v2/${match[1]}` : null
-  }
-
-  const videoLinks = [socials.video_1, socials.video_2].filter(Boolean)
-
   return (
     <div className="min-h-screen bg-zinc-50">
       
@@ -173,9 +160,6 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
         isCreatorOwner={isCreatorOwner}
         socials={socials}
         socialIcons={socialIcons}
-        videoLinks={videoLinks}
-        getYouTubeEmbed={getYouTubeEmbed}
-        getTikTokEmbed={getTikTokEmbed}
       />
 
     </div>

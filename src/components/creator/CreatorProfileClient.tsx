@@ -13,9 +13,6 @@ type CreatorProfileClientProps = {
   isCreatorOwner: boolean
   socials: any
   socialIcons: any
-  videoLinks: string[]
-  getYouTubeEmbed: (input: string) => string | null
-  getTikTokEmbed: (input: string) => string | null
 }
 
 export default function CreatorProfileClient({
@@ -23,14 +20,26 @@ export default function CreatorProfileClient({
   songs,
   isCreatorOwner,
   socials,
-  socialIcons,
-  videoLinks,
-  getYouTubeEmbed,
-  getTikTokEmbed
+  socialIcons
 }: CreatorProfileClientProps) {
   const [isBioModalOpen, setIsBioModalOpen] = useState(false)
   const [isEditPanelOpen, setIsEditPanelOpen] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
+
+  // Helper functions (moved from server component)
+  const getYouTubeEmbed = (input: string) => {
+    const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    const match = input?.match(regex)
+    return match ? `https://www.youtube.com/embed/${match[1]}` : null
+  }
+
+  const getTikTokEmbed = (input: string) => {
+    const match = input?.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/)
+    return match ? `https://www.tiktok.com/embed/v2/${match[1]}` : null
+  }
+
+  // Get video links from socials
+  const videoLinks = [socials.video_1, socials.video_2].filter(Boolean)
 
   // Get featured content (first 3 songs for thumbnails)
   const featuredSongs = songs.slice(0, 3)
