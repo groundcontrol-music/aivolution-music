@@ -76,52 +76,14 @@ export default function CreatorProfileClient({
       <div className="min-h-screen bg-zinc-50">
         
         {/* HERO SECTION */}
-        <div className="bg-white border-b-2 border-black">
-          <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <div className="bg-white border-b-4 border-black">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
             
-            {/* Top: Name + Edit Button */}
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter leading-none">
-                {creator.artist_name}
-              </h1>
-              {isCreatorOwner && (
-                <button
-                  onClick={() => setIsEditPanelOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-sm rounded-[1.5rem] transition-colors"
-                >
-                  <Edit size={18} />
-                  EDIT
-                </button>
-              )}
-            </div>
-
-            {/* Center: Avatar + Thumbnails */}
-            <div className="flex items-center justify-center gap-6 md:gap-8 mb-8">
+            <div className="flex flex-col md:flex-row gap-8 items-start">
               
-              {/* Left Thumbnails */}
-              {featuredSongs[0] && (
-                <ThumbnailCircle
-                  imageUrl={featuredSongs[0].cover_url}
-                  label={featuredSongs[0].title}
-                  size="md"
-                  onClick={() => console.log('Play song:', featuredSongs[0])}
-                />
-              )}
-              {videoLinks[0] && (
-                <ThumbnailCircle
-                  icon={<Video size={32} />}
-                  label="Video 1"
-                  size="sm"
-                  onClick={() => setSelectedVideo(videoLinks[0])}
-                />
-              )}
-
-              {/* Main Avatar (Click for Bio) */}
-              <button
-                onClick={() => setIsBioModalOpen(true)}
-                className="relative group"
-              >
-                <div className="w-44 h-44 md:w-56 md:h-56 rounded-full border-4 border-black shadow-[12px_12px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 transition-all duration-200 hover:shadow-[16px_16px_0px_0px_rgba(220,38,38,1)] hover:scale-105">
+              {/* LEFT: Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-black shadow-[12px_12px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100">
                   {creator.avatar_url ? (
                     <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
                   ) : (
@@ -129,81 +91,144 @@ export default function CreatorProfileClient({
                       {creator.artist_name?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-all">
-                    <span className="text-white font-black uppercase text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                      BIO LESEN
-                    </span>
-                  </div>
                 </div>
-              </button>
+              </div>
 
-              {/* Right Thumbnails */}
-              {videoLinks[1] && (
-                <ThumbnailCircle
-                  icon={<Video size={32} />}
-                  label="Video 2"
-                  size="sm"
-                  onClick={() => setSelectedVideo(videoLinks[1])}
-                />
-              )}
-              {featuredSongs[1] && (
-                <ThumbnailCircle
-                  imageUrl={featuredSongs[1].cover_url}
-                  label={featuredSongs[1].title}
-                  size="md"
-                  onClick={() => console.log('Play song:', featuredSongs[1])}
-                />
-              )}
+              {/* RIGHT: Info + Social */}
+              <div className="flex-1 min-w-0">
+                
+                {/* Name + Edit Button */}
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter leading-none mb-2">
+                      {creator.artist_name}
+                    </h1>
+                    <p className="text-sm font-bold uppercase tracking-wider text-red-600">
+                      BEAT ARTIST
+                    </p>
+                  </div>
+                  {isCreatorOwner && (
+                    <button
+                      onClick={() => setIsEditPanelOpen(true)}
+                      className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs rounded-full transition-colors"
+                    >
+                      <Edit size={16} />
+                      EDIT
+                    </button>
+                  )}
+                </div>
+                {/* Tech Stack */}
+                {creator.tech_stack && creator.tech_stack.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {creator.tech_stack.map((tech: string) => (
+                      <span key={tech} className="text-xs font-bold uppercase px-3 py-1 bg-red-600 text-white rounded-full">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Social Links */}
+                {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
+                      <a
+                        key={key}
+                        href={socials[key]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-12 h-12 rounded-full border-2 border-black bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors flex items-center justify-center text-xl"
+                        title={key}
+                      >
+                        <span>{socialIcons[key] || '🔗'}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+              </div>
 
             </div>
 
-            {/* Tech Stack */}
-            {creator.tech_stack && creator.tech_stack.length > 0 && (
-              <div className="flex justify-center flex-wrap gap-2 mb-6">
-                {creator.tech_stack.map((tech: string) => (
-                  <span key={tech} className="text-xs font-bold uppercase px-4 py-2 bg-red-600 text-white rounded-full">
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            )}
+          </div>
+        </div>
 
-            {/* Social Links */}
-            {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').length > 0 && (
-              <div className="flex justify-center flex-wrap gap-3">
-                {Object.keys(socials).filter(k => socials[k] && k !== 'video_1' && k !== 'video_2').map((key) => (
-                  <a
-                    key={key}
-                    href={socials[key]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors text-xs font-bold uppercase rounded-full"
+        {/* BIO + THE LAB (Two Column) */}
+        <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+          <div className="grid md:grid-cols-2 gap-8">
+            
+            {/* LEFT: BIO */}
+            <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-4 flex items-center gap-2">
+                BIO
+                {isCreatorOwner && (
+                  <button
+                    onClick={() => setIsBioModalOpen(true)}
+                    className="text-xs px-3 py-1 bg-zinc-100 hover:bg-zinc-200 rounded-full transition-colors"
                   >
-                    <span>{socialIcons[key] || '🔗'}</span>
-                    {key}
-                    <ExternalLink size={12} />
-                  </a>
+                    ✏️ Edit
+                  </button>
+                )}
+              </h2>
+              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <p className="whitespace-pre-line">
+                  {creator.bio || 'Keine Bio vorhanden.'}
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT: THE LAB (Featured Songs) */}
+            <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-4 text-red-600">
+                // THE LAB
+              </h2>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {featuredSongs.slice(0, 3).map((song) => (
+                  <div 
+                    key={song.id}
+                    className="bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
+                    onClick={() => {
+                      const { play } = require('@/contexts/PlayerContext')
+                      // Play song
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg border-2 border-black bg-zinc-200 flex-shrink-0 overflow-hidden">
+                        {song.cover_url ? (
+                          <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm uppercase truncate">{song.title}</p>
+                        <p className="text-xs text-gray-600">WAV • {song.duration || '3:45'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-black text-red-600">€{(song.price || 2.99).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            )}
+            </div>
 
           </div>
         </div>
 
         {/* MUSIC SHOP */}
         {shopSongs.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
             
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-                <span>MUSIC SHOP</span>
-                <span className="text-red-600">{shopSongs.length}</span>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">
+                MUSIC SHOP 
+                <span className="text-red-600 ml-3">({shopSongs.length})</span>
               </h2>
             </div>
 
             {/* Compact Grid: 4-5 per row */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
               {shopSongs.map((song) => (
                 <CompactSongCard
                   key={song.id}
