@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const SNAKE_LABEL = 'AIVOLUTION MUSIC'
 const GRID_SIZE = 20
-const CELL_SIZE = 16
+const DESKTOP_CELL_SIZE = 20
 const INITIAL_SPEED = 120
 
 type Dir = 'up' | 'down' | 'left' | 'right'
@@ -23,6 +23,7 @@ function createInitialSnake(): Pos[] {
 
 export default function LockPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [cellSize, setCellSize] = useState(DESKTOP_CELL_SIZE)
   const [snake, setSnake] = useState<Pos[]>(createInitialSnake)
   const [food, setFood] = useState<Pos>({ x: 15, y: 10 })
   const [dir, setDir] = useState<Dir>('right')
@@ -103,6 +104,23 @@ export default function LockPage() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [gameOver, showLogin])
 
+  useEffect(() => {
+    const updateCellSize = () => {
+      const width = window.innerWidth
+      if (width < 420) {
+        setCellSize(14)
+      } else if (width < 768) {
+        setCellSize(16)
+      } else {
+        setCellSize(DESKTOP_CELL_SIZE)
+      }
+    }
+
+    updateCellSize()
+    window.addEventListener('resize', updateCellSize)
+    return () => window.removeEventListener('resize', updateCellSize)
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoginError('')
@@ -121,14 +139,29 @@ export default function LockPage() {
     setLoginError(data.error || 'Login fehlgeschlagen')
   }
 
-  const w = GRID_SIZE * CELL_SIZE
-  const h = GRID_SIZE * CELL_SIZE
+  const w = GRID_SIZE * cellSize
+  const h = GRID_SIZE * cellSize
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 gap-6">
-      <h1 className="text-white text-2xl md:text-4xl font-black italic uppercase tracking-tight">
-        Aivolution<span className="text-red-600">Music</span>
-      </h1>
+      <div className="relative pt-16">
+        <button
+          type="button"
+          onClick={() => setShowLogin(true)}
+          className="absolute left-1/2 -translate-x-1/2 -top-2 z-20 transition-transform hover:scale-105"
+          aria-label="Aivo Login"
+          title="Aivo"
+        >
+          <img
+            src="/aivo-robot.png"
+            alt="Aivo"
+            className="h-20 w-auto md:h-24 object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.45)] animate-[pulse_3s_ease-in-out_infinite]"
+          />
+        </button>
+        <h1 className="text-white text-2xl md:text-4xl font-black italic uppercase tracking-tight">
+          Aivolution<span className="text-red-600">Music</span>
+        </h1>
+      </div>
       <h2 className="text-white/60 text-sm font-mono uppercase tracking-[0.3em]">
         BETA · DEMNÄCHST LIVE
       </h2>
@@ -139,15 +172,6 @@ export default function LockPage() {
           className="relative rounded-[2.5rem] border-4 border-white p-2"
           style={{ width: w + 16, height: h + 16 }}
         >
-          {/* SECRET LOGIN - rechte obere Ecke (unsichtbarer Hotspot) */}
-          <button
-            type="button"
-            aria-label="Secret"
-            className="absolute top-0 right-0 w-12 h-12 rounded-tr-[2.2rem] z-20 bg-transparent"
-            onClick={() => setShowLogin(true)}
-            title=""
-          />
-
           <canvas
             ref={canvasRef}
             width={w}
