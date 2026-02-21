@@ -83,16 +83,23 @@ export default function CreatorProfileClient({
                   {/* Thumbnails Row */}
                   <div className="flex justify-center gap-2">
                     
-                    {/* Secret Lounge (nur für Owner/Admin) - ROT */}
-                    {isCreatorOwner && (
-                      <button
-                        onClick={() => alert('Secret Lounge Feature kommt bald!')}
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transform"
-                        title="Secret Lounge"
-                      >
-                        🔒
-                      </button>
-                    )}
+                    {/* Secret Lounge - Zugang wird in der Lounge selbst streng geprüft */}
+                    <button
+                      onClick={() => {
+                        const slug =
+                          creator.artist_name_slug ||
+                          (creator.artist_name || '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/^-+|-+$/g, '')
+                        if (!slug) return
+                        window.location.href = `/creator/${slug}/secret-lounge`
+                      }}
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transform"
+                      title="Secret Lounge (18+)"
+                    >
+                      🔒
+                    </button>
 
                     {/* Thumbnail 1: Featured (editierbar) */}
                     <ThumbnailCircle

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
 const SNAKE_LABEL = 'AIVOLUTION MUSIC'
 const GRID_SIZE = 20
@@ -23,6 +24,7 @@ function createInitialSnake(): Pos[] {
 
 export default function LockPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const supabase = useMemo(() => createClient(), [])
   const [cellSize, setCellSize] = useState(DESKTOP_CELL_SIZE)
   const [snake, setSnake] = useState<Pos[]>(createInitialSnake)
   const [food, setFood] = useState<Pos>({ x: 15, y: 10 })
@@ -34,6 +36,7 @@ export default function LockPage() {
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
+  const [announcements, setAnnouncements] = useState<Array<{ id: string; content: string; created_at: string }>>([])
   const dirRef = useRef<Dir>(dir)
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -121,6 +124,23 @@ export default function LockPage() {
     return () => window.removeEventListener('resize', updateCellSize)
   }, [])
 
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from('lockscreen_announcements')
+        .select('id, content, created_at')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (!error && data) {
+        setAnnouncements(data as Array<{ id: string; content: string; created_at: string }>)
+      }
+    }
+
+    void loadAnnouncements()
+  }, [supabase])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoginError('')
@@ -207,6 +227,24 @@ export default function LockPage() {
       <p className="text-white/40 text-xs font-mono max-w-sm text-center">
         Nutze die Pfeiltasten. Die Schlange zeigt &quot;Aivolution Music&quot;.
       </p>
+
+      {announcements.length > 0 && (
+        <div className="w-full max-w-2xl bg-zinc-950 border border-white/20 rounded-2xl p-4">
+          <h3 className="text-xs font-black uppercase tracking-widest text-red-500 mb-2">
+            Meldungen zur Sperrseite
+          </h3>
+          <div className="space-y-2">
+            {announcements.map((item) => (
+              <div key={item.id} className="border-l-2 border-red-600 pl-3 py-1">
+                <p className="text-[10px] font-mono text-white/50">
+                  {new Date(item.created_at).toLocaleString('de-DE')}
+                </p>
+                <p className="text-sm text-white/90">{item.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Snake zeichnen */}
       <SnakeCanvas

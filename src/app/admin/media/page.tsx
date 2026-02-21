@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import MediaSlotEditor from '@/components/admin/MediaSlotEditor'
+import LockscreenAnnouncementEditor from '@/components/admin/LockscreenAnnouncementEditor'
 import { ImageIcon } from 'lucide-react'
 import { CURATION_TEMPLATE_DEFAULTS } from '@/lib/curation-email'
 
@@ -72,6 +73,10 @@ export default async function AdminMediaPage() {
           {slots && slots.map((slot: any) => (
             <MediaSlotEditor key={slot.id ?? `slot-${slot.slot_id}`} slot={slot} />
           ))}
+        </div>
+
+        <div className="mt-8">
+          <LockscreenAnnouncementEditor />
         </div>
 
       </div>
