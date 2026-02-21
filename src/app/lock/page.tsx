@@ -144,18 +144,18 @@ export default function LockPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 gap-6">
-      <div className="relative pt-16">
+      <div className="relative pt-20">
         <button
           type="button"
           onClick={() => setShowLogin(true)}
-          className="absolute left-1/2 -translate-x-1/2 -top-2 z-20 transition-transform hover:scale-105"
+          className="absolute left-1/2 -translate-x-1/2 -top-10 z-20 transition-transform hover:scale-105"
           aria-label="Aivo Login"
           title="Aivo"
         >
           <img
             src="/aivo-robot.png"
             alt="Aivo"
-            className="h-20 w-auto md:h-24 object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.45)] animate-[pulse_3s_ease-in-out_infinite]"
+            className="h-16 w-auto sm:h-20 md:h-24 lg:h-28 object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.45)] animate-[pulse_3s_ease-in-out_infinite]"
           />
         </button>
         <h1 className="text-white text-2xl md:text-4xl font-black italic uppercase tracking-tight">
