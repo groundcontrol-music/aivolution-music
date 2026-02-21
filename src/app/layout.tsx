@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import OnboardingHelper from "@/components/OnboardingHelper";
 import { PlayerProvider } from "@/contexts/PlayerContext";
-import GlobalPlayer from "@/components/GlobalPlayer";
+import AppShell from "@/components/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,10 +24,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <PlayerProvider>
-          <Header />
-          <OnboardingHelper />
-          {children}
-          <GlobalPlayer />
+          <AppShell>{children}</AppShell>
         </PlayerProvider>
       </body>
     </html>
