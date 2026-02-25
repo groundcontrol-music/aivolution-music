@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import Link from 'next/link'
 
 const SNAKE_LABEL = 'AIVOLUTION MUSIC'
 const GRID_SIZE = 20
@@ -314,6 +315,15 @@ export default function LockPage() {
           </form>
         </div>
       )}
+
+      <div className="pt-1">
+        <Link
+          href="/impressum"
+          className="text-[11px] font-bold uppercase tracking-wider text-white/50 hover:text-red-500 transition-colors underline underline-offset-4"
+        >
+          Impressum
+        </Link>
+      </div>
     </div>
   )
 }
