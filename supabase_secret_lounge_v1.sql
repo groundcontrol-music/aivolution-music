@@ -78,6 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_lounge_posts_topic_time ON public.creator_lounge_
 CREATE OR REPLACE FUNCTION public.set_updated_at_secret_lounge()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -104,6 +105,7 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_secret_lounge();
 CREATE OR REPLACE FUNCTION public.enforce_lounge_topic_limit()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 DECLARE
   topic_count INT;
@@ -141,6 +143,7 @@ FOR EACH ROW EXECUTE FUNCTION public.enforce_lounge_topic_limit();
 CREATE OR REPLACE FUNCTION public.validate_lounge_post_content()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 DECLARE
   has_filter_fn BOOLEAN;
@@ -295,9 +298,101 @@ $$;
 -- ------------------------------------------------------------
 -- 4) RLS
 -- ------------------------------------------------------------
+ALTER TABLE public.user_age_verifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_compliance_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.creator_lounge_access ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.creator_lounge_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.creator_lounge_posts ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_age_verifications'
+      AND policyname = 'Users can read own age verification'
+  ) THEN
+    CREATE POLICY "Users can read own age verification"
+      ON public.user_age_verifications
+      FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_compliance_verifications'
+      AND policyname = 'Users can read own compliance verification'
+  ) THEN
+    CREATE POLICY "Users can read own compliance verification"
+      ON public.user_compliance_verifications
+      FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_age_verifications'
+      AND policyname = 'Admins can manage age verifications'
+  ) THEN
+    CREATE POLICY "Admins can manage age verifications"
+      ON public.user_age_verifications
+      FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1
+          FROM public.profiles p
+          WHERE p.id = auth.uid()
+            AND p.role = 'admin'
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1
+          FROM public.profiles p
+          WHERE p.id = auth.uid()
+            AND p.role = 'admin'
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_compliance_verifications'
+      AND policyname = 'Admins can manage compliance verifications'
+  ) THEN
+    CREATE POLICY "Admins can manage compliance verifications"
+      ON public.user_compliance_verifications
+      FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1
+          FROM public.profiles p
+          WHERE p.id = auth.uid()
+            AND p.role = 'admin'
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1
+          FROM public.profiles p
+          WHERE p.id = auth.uid()
+            AND p.role = 'admin'
+        )
+      );
+  END IF;
+END $$;
 
 DO $$
 BEGIN
