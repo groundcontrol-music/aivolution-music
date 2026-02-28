@@ -377,16 +377,16 @@ export default function CreatorProfileClient({
           <div className="bg-white border-2 border-black rounded-[2.5rem] overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         
         {/* HERO SECTION */}
-        <div className="bg-white border-b-2 border-black relative overflow-visible rounded-b-[2.5rem]">
+        <div 
+          className="bg-white border-b-2 border-black relative overflow-visible rounded-t-[2.3rem] rounded-b-[2.5rem] cursor-pointer group"
+          onClick={() => bannerImageUrl && setSelectedImage(bannerImageUrl)}
+        >
           {bannerImageUrl && (
-            <>
-              <img
-                src={bannerImageUrl}
-                alt={`${creator.artist_name} Banner`}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              {/* No opacity or overlay on banner */}
-            </>
+            <img
+              src={bannerImageUrl}
+              alt={`${creator.artist_name} Banner`}
+              className="absolute inset-0 w-full h-full object-cover rounded-t-[2.3rem] rounded-b-[2.5rem]"
+            />
           )}
           <div className="px-4 md:px-6 py-4 md:py-5 relative z-10">
             
@@ -585,30 +585,30 @@ export default function CreatorProfileClient({
         <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="grid md:grid-cols-3 gap-6">
             
-            {/* LEFT: BIO */}
-            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 h-[350px] overflow-hidden">
+              {/* LEFT: BIO */}
+            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 h-[175px] overflow-hidden">
               <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
                 BIO
               </div>
               {isCreatorOwner && (
                 <button
                   onClick={handleSaveBio}
-                  className="absolute top-4 right-4 text-[11px] px-3 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white transition-colors"
+                  className="absolute top-4 right-4 text-[10px] px-2 py-0.5 border border-black rounded-full hover:bg-black hover:text-white transition-colors z-30"
                   disabled={savingBio}
                 >
-                  {savingBio ? 'Speichern...' : 'Speichern'}
+                  {savingBio ? '...' : 'Save'}
                 </button>
               )}
-              <div className="text-base leading-relaxed text-gray-700 h-full overflow-y-auto pt-4 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="text-sm leading-relaxed text-gray-700 h-full overflow-y-auto pt-2 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex items-center">
                 {isCreatorOwner ? (
                   <textarea
                     value={bioDraft}
                     onChange={(e) => setBioDraft(e.target.value)}
                     placeholder="Deine Bio..."
-                    className="w-full h-full bg-transparent p-0 text-base leading-relaxed resize-none focus:outline-none border-0"
+                    className="w-full h-full bg-transparent p-0 text-sm leading-relaxed resize-none focus:outline-none border-0"
                   />
                 ) : (
-                  <p className="whitespace-pre-line">
+                  <p className="whitespace-pre-line w-full text-center">
                     {bioDraft || 'Keine Bio vorhanden.'}
                   </p>
                 )}
@@ -620,7 +620,7 @@ export default function CreatorProfileClient({
               const ytEmbed = getYouTubeEmbed(videoUrl)
               const ttEmbed = getTikTokEmbed(videoUrl)
               return (
-                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[350px]">
+                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[175px]">
                   <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
                     {slot === 1 ? 'THE SHOW' : 'THE SHOW B'}
                   </div>
@@ -745,17 +745,17 @@ export default function CreatorProfileClient({
         )}
 
         {/* CREATOR IMPRESSUM - dezenter Link unten mittig */}
-        <div className="px-4 md:px-6 pb-8 md:pb-10">
-          <div className="flex flex-col md:flex-row items-center justify-center md:justify-end gap-3">
+        <div className="px-4 md:px-6 pb-6 text-center">
+          <div className="flex flex-col items-center justify-center gap-2">
             <a
               href={creatorImpressumLink}
-              className="text-sm md:text-base font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
+              className="text-xs md:text-sm font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
             >
               Creator Impressum (klick)
             </a>
             <a
               href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Bitte Creator und Werk melden: ${creator.artist_name} (${creatorImpressumLink})`)}`}
-              className="text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 border-black bg-red-600 text-white hover:bg-red-700 transition-colors"
+              className="text-[9px] font-black uppercase px-2 py-1 rounded-full border border-black bg-red-600 text-white hover:bg-red-700 transition-colors"
             >
               Urheberrechtsverletzung melden
             </a>
@@ -764,9 +764,9 @@ export default function CreatorProfileClient({
             <div className="mt-3">
               <button
                 onClick={() => setShowImpressumEditor((v) => !v)}
-                className="text-xs font-bold uppercase px-3 py-2 rounded-full border-2 border-black hover:bg-black hover:text-white transition-colors"
+                className="text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-black hover:bg-black hover:text-white transition-colors"
               >
-                {showImpressumEditor ? 'Impressum Editor schließen' : 'Impressum bearbeiten'}
+                {showImpressumEditor ? 'Editor schließen' : 'Impressum bearbeiten'}
               </button>
             </div>
           )}
