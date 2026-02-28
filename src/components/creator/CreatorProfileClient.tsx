@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Edit, ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
+import { ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
 import CompactSongCard from './CompactSongCard'
 
@@ -32,6 +32,8 @@ export default function CreatorProfileClient({
   const [savingBio, setSavingBio] = useState(false)
   const [bannerPreview, setBannerPreview] = useState('')
   const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadingThumb, setUploadingThumb] = useState<number | null>(null)
   const [showImpressumEditor, setShowImpressumEditor] = useState(false)
   const [savingImpressum, setSavingImpressum] = useState(false)
@@ -47,6 +49,7 @@ export default function CreatorProfileClient({
     website: '',
   })
   const bannerInputRef = useRef<HTMLInputElement | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const thumbInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const bannerImageUrl =
     bannerPreview ||
@@ -191,6 +194,49 @@ export default function CreatorProfileClient({
     } finally {
       setUploadingBanner(false)
       if (bannerInputRef.current) bannerInputRef.current.value = ''
+    }
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Nur JPG, PNG oder WEBP sind erlaubt.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Avatar zu groß (max. 2 MB).')
+      return
+    }
+
+    try {
+      const dims = await readImageDimensions(file)
+      if (dims.width < 300 || dims.height < 300) {
+        alert('Avatar zu klein. Bitte mindestens 300x300 Pixel verwenden.')
+        return
+      }
+
+      setUploadingAvatar(true)
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const filePath = `${creator.id}/avatar.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true })
+      if (uploadError) throw uploadError
+
+      const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicData.publicUrl } as any)
+        .eq('id', creator.id)
+      if (updateError) throw updateError
+
+      setAvatarPreview(publicData.publicUrl)
+    } catch (error: any) {
+      alert(`Avatar-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setUploadingAvatar(false)
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
     }
   }
 
@@ -342,20 +388,39 @@ export default function CreatorProfileClient({
               <div className="absolute inset-0 bg-black/10" />
             </>
           )}
-          <div className="px-4 md:px-6 py-6 md:py-8 relative z-10">
+          <div className="px-4 md:px-6 py-4 md:py-5 relative z-10">
             
-            <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="flex flex-col md:flex-row gap-5 items-start">
               
               {/* LEFT: Avatar + Small Thumbnails */}
               <div className="flex-shrink-0">
                 {/* Main Avatar */}
-                <div className="w-40 h-40 md:w-52 md:h-52 rounded-[2.5rem] border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
-                  {creator.avatar_url ? (
-                    <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
+                <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-[2.5rem] border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
+                  {(avatarPreview || creator.avatar_url) ? (
+                    <img src={avatarPreview || creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-7xl font-black text-zinc-300">
                       {creator.artist_name?.charAt(0).toUpperCase()}
                     </div>
+                  )}
+                  {isCreatorOwner && (
+                    <>
+                      <button
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white transition-colors text-xs font-black flex items-center justify-center"
+                        title="Avatar bearbeiten"
+                        disabled={uploadingAvatar}
+                      >
+                        {uploadingAvatar ? <Loader2 size={12} className="animate-spin" /> : '✎'}
+                      </button>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                      />
+                    </>
                   )}
                 </div>
 
@@ -445,7 +510,7 @@ export default function CreatorProfileClient({
               {/* RIGHT: Info + Aivo */}
               <div className="flex-1 min-w-0 relative">
                 
-                {/* Name + Small Edit Icon */}
+                {/* Name + Banner Upload */}
                 <div className="flex items-start gap-4 mb-4">
                   <div>
                     <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-none mb-2">
@@ -458,13 +523,6 @@ export default function CreatorProfileClient({
                   {isCreatorOwner && (
                     <div className="flex flex-col items-start gap-2">
                       <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setIsBioModalOpen(true)}
-                        className="flex-shrink-0 w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors flex items-center justify-center"
-                        title="Profil bearbeiten"
-                      >
-                        <Edit size={16} />
-                      </button>
                       <button
                         onClick={() => bannerInputRef.current?.click()}
                         className="h-10 px-3 bg-black hover:bg-zinc-800 text-white rounded-full transition-colors flex items-center gap-2 text-xs font-bold uppercase"
@@ -508,7 +566,7 @@ export default function CreatorProfileClient({
         </div>
 
         {/* BIO + THE SHOW (Independent Boxes) */}
-        <div className="px-4 md:px-6 py-7 md:py-10">
+        <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="grid md:grid-cols-3 gap-6">
             
             {/* LEFT: BIO */}
@@ -546,7 +604,7 @@ export default function CreatorProfileClient({
               const ytEmbed = getYouTubeEmbed(videoUrl)
               const ttEmbed = getTikTokEmbed(videoUrl)
               return (
-                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden min-h-[320px] md:min-h-[400px]">
+                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden min-h-[240px] md:min-h-[300px]">
                   <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
                     {slot === 1 ? 'THE SHOW' : 'VIDEO 2'}
                   </div>
