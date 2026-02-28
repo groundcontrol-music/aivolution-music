@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Edit, ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
