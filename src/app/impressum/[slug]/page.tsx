@@ -36,8 +36,19 @@ export default async function CreatorImpressumPage({
             </p>
           ) : (
             <>
+              <p className="text-sm md:text-base font-black uppercase tracking-wide text-zinc-800 mb-2">
+                Creator-Shop geschützt durch Aivolution Music
+              </p>
               <p className="text-sm md:text-base text-zinc-700 mb-4">
-                Angaben für <strong>{creator.artist_name}</strong>. Zur Abschirmung gegen automatisches Scraping wird das Impressum als geschütztes Bild ausgeliefert.
+                Verantwortlicher Creator: <strong>{creator.artist_name}</strong>
+                <br />
+                Plattform-Host &amp; Technischer Dienstleister: <strong>Aivolution Digital Service</strong>
+                <br />
+                Inhaber: <strong>Matthias Aue</strong>
+                <br />
+                Landstrasse 73, 31717 Nordsehl
+                <br />
+                Hinweis: Die Inhalte liegen in der Verantwortung des jeweiligen Creators.
               </p>
               <div className="border-2 border-black rounded-[1.5rem] p-3 bg-zinc-100 relative overflow-hidden">
                 <img
@@ -47,7 +58,22 @@ export default async function CreatorImpressumPage({
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0)_0%,rgba(255,255,255,0.06)_100%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0)_0%,rgba(255,255,255,0.09)_100%)] pointer-events-none" />
+                <div className="absolute inset-0 pointer-events-none opacity-[0.08] mix-blend-multiply bg-[linear-gradient(45deg,#000_0%,transparent_12%,#000_24%,transparent_36%,#000_48%,transparent_60%,#000_72%,transparent_84%,#000_100%)]" />
+              </div>
+              <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <img src="/aivo-robot.png" alt="Aivo" className="h-12 w-auto object-contain" />
+                  <p className="text-xs md:text-sm bg-white border border-black rounded-xl px-3 py-2">
+                    Aivo: „Ich passe nur auf die Technik auf! Die Inhalte liegen in der Verantwortung des Creators.“
+                  </p>
+                </div>
+                <a
+                  href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Bitte Link und Details melden: ${process.env.NEXT_PUBLIC_SITE_URL || ''}/creator/${creator.artist_name_slug}`)}`}
+                  className="inline-flex items-center justify-center text-xs font-black uppercase px-3 py-2 rounded-full border-2 border-black hover:bg-black hover:text-white transition-colors"
+                >
+                  Urheberrechtsverletzung melden
+                </a>
               </div>
             </>
           )}

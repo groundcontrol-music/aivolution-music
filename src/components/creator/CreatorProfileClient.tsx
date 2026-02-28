@@ -471,12 +471,20 @@ export default function CreatorProfileClient({
 
         {/* CREATOR IMPRESSUM - dezenter Link unten mittig */}
         <div className="px-4 md:px-6 pb-8 md:pb-10 text-center">
-          <a
-            href={creatorImpressumLink}
-            className="text-sm md:text-base font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
-          >
-            Creator Impressum (klick)
-          </a>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3">
+            <a
+              href={creatorImpressumLink}
+              className="text-sm md:text-base font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
+            >
+              Creator Impressum (klick)
+            </a>
+            <a
+              href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Bitte Creator und Werk melden: ${creator.artist_name} (${creatorImpressumLink})`)}`}
+              className="text-[11px] font-black uppercase px-3 py-2 rounded-full border-2 border-black hover:bg-black hover:text-white transition-colors"
+            >
+              Urheberrechtsverletzung melden
+            </a>
+          </div>
           {isCreatorOwner && (
             <div className="mt-3">
               <button
