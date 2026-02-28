@@ -23,9 +23,9 @@ export default function CreatorProfileClient({
 }: CreatorProfileClientProps) {
   const supabase = createClient()
   const [isBioModalOpen, setIsBioModalOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
   const [selectedSong, setSelectedSong] = useState<any | null>(null)
-  const [songNoteDraft, setSongNoteDraft] = useState('')
   const [savingSongNote, setSavingSongNote] = useState(false)
   const [socialState, setSocialState] = useState<any>(socials || {})
   const [bioDraft, setBioDraft] = useState(creator.bio || '')
@@ -451,31 +451,41 @@ export default function CreatorProfileClient({
                     {[1, 2, 3].map((slot, idx) => {
                       const imageUrl = socialState[`_thumb_${slot}_url`] || featuredSongs[idx]?.cover_url || ''
                       return (
-                        <button
-                          key={slot}
-                          onClick={() => isCreatorOwner && thumbInputRefs.current[slot]?.click()}
-                          className="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] border-2 border-black bg-white overflow-hidden hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all relative"
-                          title={isCreatorOwner ? `Bild ${slot} bearbeiten` : `Featured ${slot}`}
-                        >
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={`Featured ${slot}`} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl bg-zinc-100">
-                              {uploadingThumb === slot ? <Loader2 size={18} className="animate-spin" /> : '📷'}
-                            </div>
-                          )}
+                        <div key={slot} className="relative group w-16 h-16 md:w-20 md:h-20">
+                          <button
+                            onClick={() => imageUrl && setSelectedImage(imageUrl)}
+                            className="w-full h-full rounded-[1.5rem] border-2 border-black bg-white overflow-hidden hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all relative"
+                            title={imageUrl ? `Featured ${slot} ansehen` : `Featured ${slot}`}
+                          >
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={`Featured ${slot}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-2xl bg-zinc-100">
+                                {uploadingThumb === slot ? <Loader2 size={18} className="animate-spin" /> : '📷'}
+                              </div>
+                            )}
+                          </button>
                           {isCreatorOwner && (
-                            <input
-                              ref={(el) => {
-                                thumbInputRefs.current[slot] = el
-                              }}
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              className="hidden"
-                              onChange={(e) => handleThumbUpload(slot as 1 | 2 | 3, e.target.files?.[0])}
-                            />
+                            <>
+                              <button 
+                                onClick={() => thumbInputRefs.current[slot]?.click()}
+                                className="absolute -bottom-2 -right-2 w-7 h-7 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors z-10 shadow-sm"
+                                title="Bild bearbeiten"
+                              >
+                                ✎
+                              </button>
+                              <input
+                                ref={(el) => {
+                                  thumbInputRefs.current[slot] = el
+                                }}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => handleThumbUpload(slot as 1 | 2 | 3, e.target.files?.[0])}
+                              />
+                            </>
                           )}
-                        </button>
+                        </div>
                       )
                     })}
 
@@ -570,7 +580,7 @@ export default function CreatorProfileClient({
           <div className="grid md:grid-cols-3 gap-6">
             
             {/* LEFT: BIO */}
-            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 h-[350px] overflow-hidden">
               <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
                 BIO
               </div>
@@ -583,13 +593,13 @@ export default function CreatorProfileClient({
                   {savingBio ? 'Speichern...' : 'Speichern'}
                 </button>
               )}
-              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pt-4 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="text-base leading-relaxed text-gray-700 h-full overflow-y-auto pt-4 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {isCreatorOwner ? (
                   <textarea
                     value={bioDraft}
                     onChange={(e) => setBioDraft(e.target.value)}
                     placeholder="Deine Bio..."
-                    className="w-full min-h-[220px] bg-transparent p-0 text-base leading-relaxed resize-y focus:outline-none border-0"
+                    className="w-full h-full bg-transparent p-0 text-base leading-relaxed resize-none focus:outline-none border-0"
                   />
                 ) : (
                   <p className="whitespace-pre-line">
@@ -604,7 +614,7 @@ export default function CreatorProfileClient({
               const ytEmbed = getYouTubeEmbed(videoUrl)
               const ttEmbed = getTikTokEmbed(videoUrl)
               return (
-                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden aspect-[9/16]">
+                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[350px]">
                   <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
                     {slot === 1 ? 'THE SHOW' : 'THE SHOW B'}
                   </div>
@@ -788,6 +798,28 @@ export default function CreatorProfileClient({
 
           </div>
         </div>
+
+        {/* IMAGE LIGHTBOX */}
+        {selectedImage && (
+          <div 
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md cursor-pointer"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh]">
+              <img 
+                src={selectedImage} 
+                alt="Enlarged view" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl border-2 border-white/20"
+              />
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 text-white hover:text-red-500 transition-colors"
+              >
+                <span className="text-sm font-bold uppercase tracking-widest border-b border-transparent hover:border-red-500">Schließen</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* VIDEO MODAL */}
         {selectedVideo && (
