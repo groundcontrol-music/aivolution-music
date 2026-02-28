@@ -583,7 +583,7 @@ export default function CreatorProfileClient({
                   {savingBio ? 'Speichern...' : 'Speichern'}
                 </button>
               )}
-              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pt-4 pr-2 custom-scrollbar">
+              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pt-4 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {isCreatorOwner ? (
                   <textarea
                     value={bioDraft}
@@ -604,9 +604,9 @@ export default function CreatorProfileClient({
               const ytEmbed = getYouTubeEmbed(videoUrl)
               const ttEmbed = getTikTokEmbed(videoUrl)
               return (
-                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden min-h-[240px] md:min-h-[300px]">
+                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden aspect-[9/16]">
                   <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
-                    {slot === 1 ? 'THE SHOW' : 'VIDEO 2'}
+                    {slot === 1 ? 'THE SHOW' : 'THE SHOW B'}
                   </div>
                   {isCreatorOwner && (
                     <button
