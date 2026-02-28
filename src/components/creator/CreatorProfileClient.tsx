@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Edit, ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
-import ThumbnailCircle from './ThumbnailCircle'
 import CompactSongCard from './CompactSongCard'
 
 type CreatorProfileClientProps = {
@@ -25,11 +24,19 @@ export default function CreatorProfileClient({
   const supabase = createClient()
   const [isBioModalOpen, setIsBioModalOpen] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
+  const [selectedSong, setSelectedSong] = useState<any | null>(null)
+  const [songNoteDraft, setSongNoteDraft] = useState('')
+  const [savingSongNote, setSavingSongNote] = useState(false)
   const [socialState, setSocialState] = useState<any>(socials || {})
+  const [bioDraft, setBioDraft] = useState(creator.bio || '')
+  const [savingBio, setSavingBio] = useState(false)
   const [bannerPreview, setBannerPreview] = useState('')
   const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [uploadingThumb, setUploadingThumb] = useState<number | null>(null)
   const [showImpressumEditor, setShowImpressumEditor] = useState(false)
   const [savingImpressum, setSavingImpressum] = useState(false)
+  const [shopSearch, setShopSearch] = useState('')
+  const [shopTypeFilter, setShopTypeFilter] = useState<'all' | 'single' | 'ep' | 'album'>('all')
   const [impressumForm, setImpressumForm] = useState({
     legal_name: '',
     street: '',
@@ -40,6 +47,7 @@ export default function CreatorProfileClient({
     website: '',
   })
   const bannerInputRef = useRef<HTMLInputElement | null>(null)
+  const thumbInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const bannerImageUrl =
     bannerPreview ||
     creator.banner_url ||
@@ -60,6 +68,9 @@ export default function CreatorProfileClient({
     if (!creatorSlug) return ''
     return `${shareBaseUrl}/impressum/${creatorSlug}`
   }, [creatorSlug, shareBaseUrl])
+  const songNotes = (socialState?._song_notes && typeof socialState._song_notes === 'object')
+    ? socialState._song_notes
+    : {}
 
   // Helper functions (moved from server component)
   const getYouTubeEmbed = (input: string) => {
@@ -73,14 +84,23 @@ export default function CreatorProfileClient({
     return match ? `https://www.tiktok.com/embed/v2/${match[1]}` : null
   }
 
-  // Get video links from socials
-  const videoLinks = [socialState.video_1, socialState.video_2].filter(Boolean)
+  const videoSlots = [socialState.video_1 || '', socialState.video_2 || '']
 
-  // Get featured content (first 3 songs for thumbnails)
+  // Get featured content (fallback for thumbnails)
   const featuredSongs = songs.slice(0, 3)
   
   // Get shop songs (not probe)
   const shopSongs = songs.filter(s => !s.is_probe)
+  const filteredShopSongs = useMemo(() => {
+    const query = shopSearch.trim().toLowerCase()
+    return shopSongs.filter((song) => {
+      const title = String(song.title || '').toLowerCase()
+      const type = String(song.release_type || song.type || 'single').toLowerCase()
+      const matchesQuery = !query || title.includes(query)
+      const matchesType = shopTypeFilter === 'all' || type === shopTypeFilter
+      return matchesQuery && matchesType
+    })
+  }, [shopSongs, shopSearch, shopTypeFilter])
 
   const readImageDimensions = (file: File) =>
     new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -89,6 +109,22 @@ export default function CreatorProfileClient({
       img.onerror = reject
       img.src = URL.createObjectURL(file)
     })
+
+  const upsertSocialLinks = async (patch: Record<string, any>) => {
+    const nextSocials = { ...(socialState || {}), ...patch }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ social_links: nextSocials } as any)
+      .eq('id', creator.id)
+    if (error) throw error
+    setSocialState(nextSocials)
+  }
+
+  const containsBlockedWords = (value: string) => {
+    const blocked = ['nazi', 'hitler', 'terror', 'isis', 'vergewaltigung', 'kinderporn', 'genozid']
+    const normalized = value.toLowerCase()
+    return blocked.some((w) => normalized.includes(w))
+  }
 
   const tryUpdateBannerOnProfile = async (url: string) => {
     const profileColumns = ['banner_url', 'banner_image_url', 'header_image_url', 'cover_image_url']
@@ -187,6 +223,102 @@ export default function CreatorProfileClient({
     }
   }
 
+  const handleSaveBio = async () => {
+    try {
+      setSavingBio(true)
+      const { error } = await supabase
+        .from('profiles')
+        .update({ bio: bioDraft } as any)
+        .eq('id', creator.id)
+      if (error) throw error
+      alert('Bio gespeichert.')
+    } catch (error: any) {
+      alert(`Bio speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setSavingBio(false)
+    }
+  }
+
+  const handleThumbUpload = async (slot: 1 | 2 | 3, file?: File) => {
+    if (!file) return
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Nur JPG, PNG oder WEBP sind erlaubt.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Bild zu groß (max. 2 MB).')
+      return
+    }
+    try {
+      const dims = await readImageDimensions(file)
+      if (dims.width < 300 || dims.height < 300) {
+        alert('Bild zu klein. Bitte mindestens 300x300 Pixel verwenden.')
+        return
+      }
+      setUploadingThumb(slot)
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const filePath = `${creator.id}/thumb-${slot}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      await upsertSocialLinks({ [`_thumb_${slot}_url`]: publicData.publicUrl })
+    } catch (error: any) {
+      alert(`Thumbnail speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setUploadingThumb(null)
+      if (thumbInputRefs.current[slot]) thumbInputRefs.current[slot]!.value = ''
+    }
+  }
+
+  const getVideoTypeLabel = (url: string) => {
+    if (getYouTubeEmbed(url)) return 'YouTube'
+    if (getTikTokEmbed(url)) return 'TikTok'
+    if (/suno\.com/i.test(url || '')) return 'Suno'
+    return 'Extern'
+  }
+
+  const handleEditVideoSlot = async (slot: 1 | 2) => {
+    const current = socialState[`video_${slot}`] || ''
+    const next = window.prompt(`Video-Link für Slot ${slot} (TikTok/YouTube/Suno):`, current)
+    if (next === null) return
+    const trimmed = next.trim()
+    try {
+      await upsertSocialLinks({ [`video_${slot}`]: trimmed || null })
+      alert(`Video-Slot ${slot} gespeichert.`)
+    } catch (error: any) {
+      alert(`Video-Slot ${slot} speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    }
+  }
+
+  const openSongDetail = (song: any) => {
+    setSelectedSong(song)
+    setSongNoteDraft(songNotes[song.id] || '')
+  }
+
+  const handleSaveSongNote = async () => {
+    if (!selectedSong) return
+    const cleaned = songNoteDraft.trim()
+    if (cleaned.length > 1200) {
+      alert('Text zu lang (max. 1200 Zeichen).')
+      return
+    }
+    if (containsBlockedWords(cleaned)) {
+      alert('Der Text enthält gesperrte Begriffe und konnte nicht gespeichert werden.')
+      return
+    }
+    try {
+      setSavingSongNote(true)
+      const nextNotes = { ...songNotes, [selectedSong.id]: cleaned }
+      await upsertSocialLinks({ _song_notes: nextNotes })
+      alert('Song-Info gespeichert.')
+    } catch (error: any) {
+      alert(`Song-Info speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setSavingSongNote(false)
+    }
+  }
+
   return (
     <>
       {/* BIO MODAL */}
@@ -221,7 +353,7 @@ export default function CreatorProfileClient({
               {/* LEFT: Avatar + Small Thumbnails */}
               <div className="flex-shrink-0">
                 {/* Main Avatar */}
-                <div className="w-40 h-40 md:w-52 md:h-52 rounded-full border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
+                <div className="w-40 h-40 md:w-52 md:h-52 rounded-[2.5rem] border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
                   {creator.avatar_url ? (
                     <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
                   ) : (
@@ -231,10 +363,10 @@ export default function CreatorProfileClient({
                   )}
                 </div>
 
-                {/* 4 Small Round Thumbnails + Social Links darunter */}
+                {/* 4 Small Buttons + Social Links darunter */}
                 <div className="flex flex-col items-center gap-4">
                   
-                  {/* Thumbnails Row */}
+                  {/* Buttons Row */}
                   <div className="flex justify-center gap-2">
                     
                     {/* Secret Lounge - Zugang wird in der Lounge selbst streng geprüft */}
@@ -249,37 +381,49 @@ export default function CreatorProfileClient({
                         if (!slug) return
                         window.location.href = `/creator/${slug}/secret-lounge`
                       }}
-                      className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-black bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transform"
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] border-2 border-black bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transform"
                       title="Secret Lounge (18+)"
                     >
                       🔒
                     </button>
 
-                    {/* Thumbnail 1: Featured (editierbar) */}
-                    <ThumbnailCircle
-                      imageUrl={featuredSongs[0]?.cover_url}
-                      fallbackIcon="🎵"
-                      onClick={() => {}}
-                      title={featuredSongs[0]?.title || 'Featured'}
-                    />
-
-                    {/* Thumbnail 2: Featured (editierbar) */}
-                    <ThumbnailCircle
-                      imageUrl={featuredSongs[1]?.cover_url}
-                      fallbackIcon="🎵"
-                      onClick={() => {}}
-                      title={featuredSongs[1]?.title || 'Featured'}
-                    />
-
-                    {/* Thumbnail 3: Featured (editierbar) */}
-                    <ThumbnailCircle
-                      imageUrl={featuredSongs[2]?.cover_url}
-                      fallbackIcon="📸"
-                      onClick={() => {}}
-                      title={featuredSongs[2]?.title || 'Featured'}
-                    />
+                    {[1, 2, 3].map((slot, idx) => {
+                      const imageUrl = socialState[`_thumb_${slot}_url`] || featuredSongs[idx]?.cover_url || ''
+                      return (
+                        <button
+                          key={slot}
+                          onClick={() => isCreatorOwner && thumbInputRefs.current[slot]?.click()}
+                          className="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] border-2 border-black bg-white overflow-hidden hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all relative"
+                          title={isCreatorOwner ? `Bild ${slot} bearbeiten` : `Featured ${slot}`}
+                        >
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={`Featured ${slot}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl bg-zinc-100">
+                              {uploadingThumb === slot ? <Loader2 size={18} className="animate-spin" /> : '📷'}
+                            </div>
+                          )}
+                          {isCreatorOwner && (
+                            <input
+                              ref={(el) => {
+                                thumbInputRefs.current[slot] = el
+                              }}
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={(e) => handleThumbUpload(slot as 1 | 2 | 3, e.target.files?.[0])}
+                            />
+                          )}
+                        </button>
+                      )
+                    })}
 
                   </div>
+                  {isCreatorOwner && (
+                    <p className="text-[11px] font-medium text-zinc-600 text-center">
+                      Featured-Bilder: empfohlen 600x600, JPG/PNG/WEBP, max. 2 MB
+                    </p>
+                  )}
 
                   {/* Social Links (mittig unter Thumbnails) */}
                   {Object.keys(socialState).filter(k => socialState[k] && k !== 'video_1' && k !== 'video_2' && !k.startsWith('_')).length > 0 && (
@@ -364,75 +508,89 @@ export default function CreatorProfileClient({
 
             </div>
 
-            {/* AIVO ROBOT - rechts unten an der Bannerlinie, ~50% Bannerhöhe */}
-            <div className="absolute bottom-0 right-3 md:right-6 h-[120px] md:h-[170px] w-auto pointer-events-none">
-              <img 
-                src="/aivo-robot.png" 
-                alt="Aivo Assistant" 
-                className="h-full w-auto object-contain object-bottom drop-shadow-lg"
-              />
-            </div>
-
           </div>
         </div>
 
-        {/* BIO + THE LAB (Two Column) */}
+        {/* BIO + THE SHOW (Two Column) */}
         <div className="px-4 md:px-6 py-7 md:py-10">
           <div className="grid md:grid-cols-2 gap-8">
             
             {/* LEFT: BIO */}
-            <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-4 flex items-center gap-2">
+            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
                 BIO
-                {isCreatorOwner && (
-                  <button
-                    onClick={() => setIsBioModalOpen(true)}
-                    className="text-xs px-3 py-1 bg-zinc-100 hover:bg-zinc-200 rounded-full transition-colors"
-                  >
-                    ✏️ Edit
-                  </button>
+              </div>
+              {isCreatorOwner && (
+                <button
+                  onClick={handleSaveBio}
+                  className="absolute top-4 right-4 text-[11px] px-3 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white transition-colors"
+                  disabled={savingBio}
+                >
+                  {savingBio ? 'Speichern...' : 'Speichern'}
+                </button>
+              )}
+              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pt-4 pr-2 custom-scrollbar">
+                {isCreatorOwner ? (
+                  <textarea
+                    value={bioDraft}
+                    onChange={(e) => setBioDraft(e.target.value)}
+                    placeholder="Deine Bio..."
+                    className="w-full min-h-[220px] bg-transparent p-0 text-base leading-relaxed resize-y focus:outline-none border-0"
+                  />
+                ) : (
+                  <p className="whitespace-pre-line">
+                    {bioDraft || 'Keine Bio vorhanden.'}
+                  </p>
                 )}
-              </h2>
-              <div className="text-base leading-relaxed text-gray-700 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                <p className="whitespace-pre-line">
-                  {creator.bio || 'Keine Bio vorhanden.'}
-                </p>
               </div>
             </div>
 
-            {/* RIGHT: THE SHOW (YouTube/TikTok Media) */}
-            <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-4 text-red-600">
-                // THE SHOW
-              </h2>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {videoLinks.length > 0 ? (
-                  videoLinks.map((videoUrl, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedVideo(videoUrl)}
-                      className="w-full bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4 hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-16 h-16 rounded-lg border-2 border-black bg-red-600 flex-shrink-0 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                          <Video size={28} />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className="font-bold text-sm uppercase text-gray-900">
-                            {getYouTubeEmbed(videoUrl) ? '▶️ YouTube Video' : '🎬 TikTok Video'}
-                          </p>
-                          <p className="text-xs text-gray-600">Klicken zum Abspielen</p>
-                        </div>
-                        <ExternalLink size={20} className="text-red-600" />
+            {/* RIGHT: THE SHOW (2 Slots) */}
+            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
+                THE SHOW
+              </div>
+              <div className="grid md:grid-cols-2 gap-4 pt-4">
+                {videoSlots.map((videoUrl, idx) => {
+                  const slot = (idx + 1) as 1 | 2
+                  return (
+                    <div key={slot} className="bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4">
+                      <div className="flex items-center justify-end gap-2 mb-3">
+                        {isCreatorOwner && (
+                          <button
+                            onClick={() => handleEditVideoSlot(slot)}
+                            className="text-[11px] px-2 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    <Video size={48} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Keine Videos vorhanden</p>
-                  </div>
-                )}
+                      {videoUrl ? (
+                        <button
+                          onClick={() => setSelectedVideo(videoUrl)}
+                          className="w-full bg-white border-2 border-black rounded-xl p-3 hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg border-2 border-black bg-red-600 flex items-center justify-center text-white">
+                              <Video size={20} />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className="font-bold text-xs uppercase text-gray-900">
+                                {getVideoTypeLabel(videoUrl)} Video
+                              </p>
+                              <p className="text-[11px] text-gray-600 line-clamp-1">Klicken zum Öffnen</p>
+                            </div>
+                            <ExternalLink size={16} className="text-red-600" />
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="h-[88px] border-2 border-dashed border-zinc-300 rounded-xl flex items-center justify-center text-xs text-zinc-500">
+                          Keine URL hinterlegt
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -450,9 +608,47 @@ export default function CreatorProfileClient({
               </h2>
             </div>
 
+            <div className="mb-5 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              <input
+                type="text"
+                value={shopSearch}
+                onChange={(e) => setShopSearch(e.target.value)}
+                placeholder="Suche nach Titel..."
+                className="w-full md:w-72 border-2 border-black rounded-full px-4 py-2 text-sm focus:outline-none"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { id: 'single', label: 'Single' },
+                  { id: 'ep', label: 'EP' },
+                  { id: 'album', label: 'Album' },
+                ].map((item) => {
+                  const active = shopTypeFilter === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setShopTypeFilter(item.id as 'single' | 'ep' | 'album')}
+                      className={`text-[11px] px-3 py-1 border-2 border-black rounded-full transition-colors ${
+                        active ? 'bg-black text-white' : 'hover:bg-black hover:text-white'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => setShopTypeFilter('all')}
+                  className={`text-[11px] px-3 py-1 border-2 border-black rounded-full transition-colors ${
+                    shopTypeFilter === 'all' ? 'bg-black text-white' : 'hover:bg-black hover:text-white'
+                  }`}
+                >
+                  Alle
+                </button>
+              </div>
+            </div>
+
             {/* Compact Grid: 4-5 per row */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-              {shopSongs.map((song) => (
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              {filteredShopSongs.map((song) => (
                 <CompactSongCard
                   key={song.id}
                   songId={song.id}
@@ -462,9 +658,13 @@ export default function CreatorProfileClient({
                   coverUrl={song.cover_url}
                   previewUrl={song.mp3_preview_url || song.wav_url || song.file_url}
                   onBuy={() => console.log('Buy:', song.id)}
+                  onOpen={() => openSongDetail(song)}
                 />
               ))}
             </div>
+            {filteredShopSongs.length === 0 && (
+              <p className="mt-4 text-sm text-zinc-600">Keine Tracks für den aktuellen Filter gefunden.</p>
+            )}
 
           </div>
         )}
@@ -554,7 +754,93 @@ export default function CreatorProfileClient({
                       allow="encrypted-media;"
                       allowFullScreen
                     />
-                  ) : null}
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-zinc-100">
+                      <p className="text-sm font-bold uppercase">Externe Video-Quelle</p>
+                      <a
+                        href={selectedVideo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 border-2 border-black rounded-full font-black text-xs uppercase hover:bg-black hover:text-white transition-colors"
+                      >
+                        Video im neuen Tab öffnen
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* SONG DETAIL MODAL */}
+        {selectedSong && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/80 z-40 backdrop-blur-sm"
+              onClick={() => setSelectedSong(null)}
+            />
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-3xl px-4">
+              <div className="bg-white border-4 border-black rounded-[2.5rem] overflow-hidden">
+                <div className="grid md:grid-cols-[280px_1fr]">
+                  <div className="bg-zinc-100 border-r-2 border-black">
+                    {selectedSong.cover_url ? (
+                      <img src={selectedSong.cover_url} alt={selectedSong.title} className="w-full h-full object-cover min-h-[240px]" />
+                    ) : (
+                      <div className="w-full min-h-[240px] flex items-center justify-center text-6xl text-zinc-300">🎵</div>
+                    )}
+                  </div>
+                  <div className="p-5 md:p-6 space-y-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                        {String(selectedSong.release_type || selectedSong.type || 'single').toUpperCase()}
+                      </p>
+                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight mt-1">
+                        {selectedSong.title}
+                      </h3>
+                      <p className="text-sm text-zinc-600">{creator.artist_name}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-black text-red-600">€{Number(selectedSong.price || 2.99).toFixed(2)}</span>
+                      <button
+                        onClick={() => console.log('Buy:', selectedSong.id)}
+                        className="bg-black text-white px-4 py-2 rounded-full font-bold text-xs uppercase hover:bg-red-600 transition-colors"
+                      >
+                        BUY
+                      </button>
+                    </div>
+                    {(selectedSong.mp3_preview_url || selectedSong.wav_url || selectedSong.file_url) && (
+                      <audio controls className="w-full" preload="metadata">
+                        <source src={selectedSong.mp3_preview_url || selectedSong.wav_url || selectedSong.file_url} />
+                      </audio>
+                    )}
+                    <div className="border-2 border-black rounded-[1.2rem] p-3">
+                      <p className="text-[11px] font-black uppercase tracking-wide mb-2">Info / Tracklist / Lyrics</p>
+                      {isCreatorOwner ? (
+                        <>
+                          <textarea
+                            value={songNoteDraft}
+                            onChange={(e) => setSongNoteDraft(e.target.value)}
+                            placeholder="Optionaler Text zum Song/Album..."
+                            className="w-full min-h-[110px] border-0 focus:outline-none resize-y text-sm"
+                          />
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              onClick={handleSaveSongNote}
+                              disabled={savingSongNote}
+                              className="text-[11px] px-3 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white transition-colors"
+                            >
+                              {savingSongNote ? 'Speichern...' : 'Speichern'}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm whitespace-pre-line text-zinc-700">
+                          {songNotes[selectedSong.id] || 'Keine Zusatzinfos vorhanden.'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

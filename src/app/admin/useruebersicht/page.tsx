@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import UserOverviewSearch from '@/components/admin/UserOverviewSearch'
 
 type SearchParams = Promise<{
   q?: string
@@ -30,6 +31,8 @@ export default async function AdminUseruebersichtPage({
 
   const params = await searchParams
   const q = (params.q || '').trim()
+  const qNoComma = q.replace(/,/g, ' ').trim()
+  const qSlugLike = qNoComma.toLowerCase().replace(/\s+/g, '')
   const range = params.range || 'all'
 
   const thresholdOnline = rangeToThreshold('online')!
@@ -52,8 +55,15 @@ export default async function AdminUseruebersichtPage({
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(100)
 
-  if (q) {
-    listQuery = listQuery.or(`artist_name.ilike.%${q}%,artist_name_slug.ilike.%${q}%`)
+  if (qNoComma) {
+    const searchClauses = [
+      `artist_name.ilike.%${qNoComma}%`,
+      `artist_name_slug.ilike.%${qNoComma}%`,
+    ]
+    if (qSlugLike && qSlugLike !== qNoComma.toLowerCase()) {
+      searchClauses.push(`artist_name_slug.ilike.%${qSlugLike}%`)
+    }
+    listQuery = listQuery.or(searchClauses.join(','))
   }
   // WICHTIG: Bei manueller Suche immer global suchen (auch offline User finden)
   if (activeThreshold && !q) {
@@ -116,28 +126,11 @@ export default async function AdminUseruebersichtPage({
         </div>
 
         <div className="bg-white border-2 border-black rounded-xl p-4 md:p-5">
-          <form method="GET" className="flex flex-col md:flex-row gap-3">
-            <input type="hidden" name="range" value={range} />
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              list="artist-suggestions"
-              placeholder="Profilname suchen (z.B. Lud...)"
-              className="flex-1 border-2 border-black rounded-md px-3 py-2 font-medium"
-            />
-            <datalist id="artist-suggestions">
-              {suggestions.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            <button type="submit" className="bg-black text-white px-4 py-2 rounded-md font-black uppercase text-xs hover:bg-red-600 transition-colors">
-              Suchen
-            </button>
-            <Link href="/admin/useruebersicht?range=all" className="bg-zinc-200 px-4 py-2 rounded-md font-black uppercase text-xs text-center hover:bg-zinc-300 transition-colors">
-              Reset
-            </Link>
-          </form>
+          <UserOverviewSearch
+            initialQuery={q}
+            range={range}
+            suggestions={suggestions}
+          />
           <p className="text-xs mt-2 opacity-60">Anzeige: {rangeLabel}</p>
         </div>
 

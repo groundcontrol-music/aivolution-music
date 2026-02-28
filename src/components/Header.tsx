@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 export default function Header() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [creatorSlug, setCreatorSlug] = useState<string | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [cartItems, setCartItems] = useState(0)
   const [notificationColor, setNotificationColor] = useState<'green' | 'red' | null>(null)
@@ -21,6 +22,13 @@ export default function Header() {
       setUser(user)
       
       if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('artist_name_slug')
+          .eq('id', user.id)
+          .maybeSingle()
+        setCreatorSlug(profile?.artist_name_slug || null)
+
         // Safe Admin Check via RPC
         const { data: role } = await supabase.rpc('get_my_role')
         setIsAdmin(role === 'admin')
@@ -54,6 +62,7 @@ export default function Header() {
     await supabase.auth.signOut()
     setUser(null)
     setIsAdmin(false)
+    setCreatorSlug(null)
     router.refresh()
   }
 
@@ -67,6 +76,16 @@ export default function Header() {
         <nav className="flex items-center gap-4">
           {user && (
             <>
+              {creatorSlug && (
+                <Link
+                  href={`/creator/${creatorSlug}`}
+                  className="relative p-2 hover:bg-zinc-100 rounded-sm transition-colors border-2 border-transparent hover:border-black"
+                  title="Mein Profil"
+                >
+                  <User size={20} />
+                </Link>
+              )}
+
               {/* Messages mit Notification-Farbe */}
               <Link 
                 href="/messages" 
