@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     // Get profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('artist_name')
+      .select('artist_name, artist_name_slug')
       .eq('id', user_id)
       .single()
     
@@ -42,11 +42,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
     
-    // Generate slug
-    const slug = profile.artist_name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
+    // Slug robust bestimmen (DB-first, dann Funktion, dann Fallback)
+    let slug = profile.artist_name_slug
+
+    if (!slug && profile.artist_name) {
+      const slugRpc = await supabase.rpc('generate_artist_slug', { artist_name: profile.artist_name })
+      if (!slugRpc.error && typeof slugRpc.data === 'string' && slugRpc.data.trim()) {
+        slug = slugRpc.data.trim()
+      }
+    }
+
+    if (!slug) {
+      const base =
+        (profile.artist_name || 'creator')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '') || 'creator'
+      slug = `${base}-${user_id.slice(0, 8)}`
+    }
     const creatorProfilePath = `/creator/${slug}`
     
     // Approve creator

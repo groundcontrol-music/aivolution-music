@@ -75,77 +75,111 @@ export default function CreatorSignupSlimPage() {
       return
     }
 
+    const uploadedPaths: string[] = []
+    let skeletonSongIds: string[] = []
+
+    const cleanupUploadedFiles = async () => {
+      if (uploadedPaths.length === 0) return
+      await supabase.storage.from('songs').remove(uploadedPaths)
+    }
+
+    const cleanupSkeletonRows = async () => {
+      if (skeletonSongIds.length === 0) return
+      await supabase.from('songs').delete().in('id', skeletonSongIds)
+    }
+
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not logged in')
 
-      // Upload Songs
-      const uploadSong = async (file: File, songNumber: number) => {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}/${Date.now()}-${songNumber}.${fileExt}`
-        
-        const { error: uploadError } = await supabase.storage
-          .from('songs')
-          .upload(fileName, file)
-
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('songs')
-          .getPublicUrl(fileName)
-
-        return { url: publicUrl, title: file.name.replace(/\.[^/.]+$/, '') }
-      }
-
-      const song1Data = await uploadSong(song1, 1)
-      let song2Data = null
-      if (song2) {
-        song2Data = await uploadSong(song2, 2)
-      }
-
-      // Songs als Probe speichern
-      const songsToInsert = [
+      const fileInputs = [
         {
-          user_id: user.id,
-          title: song1Data.title,
-          file_url: song1Data.url,
-          is_probe: true, // PROBE! Nicht im Shop bis Freischaltung
-          price: 2.99
+          file: song1,
+          title: song1.name.replace(/\.[^/.]+$/, '')
         }
       ]
 
-      if (song2Data) {
-        songsToInsert.push({
-          user_id: user.id,
-          title: song2Data.title,
-          file_url: song2Data.url,
-          is_probe: true,
-          price: 2.99
+      if (song2) {
+        fileInputs.push({
+          file: song2,
+          title: song2.name.replace(/\.[^/.]+$/, '')
         })
       }
 
-      await supabase.from('songs').insert(songsToInsert)
+      // 1) DB-Skelett zuerst anlegen (transaktionaler Startpunkt)
+      const skeletonPayload = fileInputs.map((entry) => ({
+        user_id: user.id,
+        title: entry.title,
+        file_url: 'uploading://pending',
+        is_probe: true
+      }))
+
+      const { data: createdSkeletonRows, error: skeletonError } = await supabase
+        .from('songs')
+        .insert(skeletonPayload)
+        .select('id')
+
+      if (skeletonError || !createdSkeletonRows?.length) {
+        throw skeletonError || new Error('Song-Skelett konnte nicht erstellt werden.')
+      }
+
+      skeletonSongIds = createdSkeletonRows.map((row: any) => row.id)
+
+      // 2) Danach Dateien hochladen + jeweilige DB-Zeile aktualisieren
+      for (let idx = 0; idx < fileInputs.length; idx++) {
+        const current = fileInputs[idx]
+        const skeletonId = skeletonSongIds[idx]
+
+        const fileExt = current.file.name.split('.').pop()
+        const filePath = `${user.id}/${Date.now()}-${idx + 1}.${fileExt}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('songs')
+          .upload(filePath, current.file)
+
+        if (uploadError) throw uploadError
+        uploadedPaths.push(filePath)
+
+        const { data: publicData } = supabase.storage
+          .from('songs')
+          .getPublicUrl(filePath)
+
+        const { error: updateSongError } = await supabase
+          .from('songs')
+          .update({
+            file_url: publicData.publicUrl,
+            title: current.title
+          })
+          .eq('id', skeletonId)
+
+        if (updateSongError) throw updateSongError
+      }
 
       // Status auf 'submitted' setzen
-      await supabase
+      const { error: profileStatusError } = await supabase
         .from('profiles')
         .update({ onboarding_status: 'submitted' })
         .eq('id', user.id)
+      if (profileStatusError) throw profileStatusError
 
-      // Benachrichtigung an Admins
-      const slug = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      await supabase
+      // Slug aus DB lesen (nicht clientseitig überschreiben, um Kollisionen zu vermeiden)
+      const { data: profileAfterSubmit, error: slugReadError } = await supabase
         .from('profiles')
-        .update({ artist_name_slug: slug })
+        .select('artist_name_slug')
         .eq('id', user.id)
+        .single()
+      if (slugReadError) throw slugReadError
+
+      const fallbackSlug = artistName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const slug = profileAfterSubmit?.artist_name_slug || fallbackSlug
 
       const { data: admins } = await supabase
         .from('profiles')
         .select('id')
         .eq('role', 'admin')
       
-      if (admins) {
+      if (admins && admins.length > 0) {
         const notifications = admins.map(admin => ({
           recipient_id: admin.id,
           sender_id: null,
@@ -156,13 +190,22 @@ export default function CreatorSignupSlimPage() {
           related_slug: slug
         }))
         
-        await supabase.from('messages').insert(notifications)
+        const { error: notifyError } = await supabase.from('messages').insert(notifications)
+        if (notifyError) throw notifyError
       }
 
       // Erfolg
       router.push('/?signup=success')
       
     } catch (error: any) {
+      // Cleanup: keine Datenleichen bei Teilfehlern
+      try {
+        await cleanupUploadedFiles()
+        await cleanupSkeletonRows()
+      } catch {
+        // Cleanup-Fehler nicht hart werfen, Originalfehler bleibt führend
+      }
+
       const msg = error?.message ?? (typeof error === 'object' ? JSON.stringify(error) : String(error))
       console.error('Upload Error:', msg, error)
       alert(`Fehler: ${msg}`)

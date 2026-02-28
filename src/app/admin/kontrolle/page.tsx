@@ -50,7 +50,7 @@ export default async function AdminKontrollePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white border-2 border-black rounded-xl p-5">
             <div className="text-xs font-black uppercase opacity-50">Neue Bewerbungen</div>
             <div className="text-4xl font-black text-green-600 mt-1">{pendingApplications || 0}</div>
@@ -66,6 +66,11 @@ export default async function AdminKontrollePage() {
             <div className="text-4xl font-black text-black mt-1">{activeFilters || 0}</div>
             <p className="text-xs mt-2">Inhaltsfilter gegen Missbrauch.</p>
           </div>
+          <Link href="/admin/useruebersicht" className="bg-white border-2 border-black rounded-xl p-5 hover:bg-black hover:text-white transition-colors">
+            <div className="text-xs font-black uppercase opacity-50">Userübersicht</div>
+            <div className="text-2xl font-black text-red-600 mt-2">Öffnen</div>
+            <p className="text-xs mt-2">Onlinezahlen, Suche und Profile direkt ansehen.</p>
+          </Link>
         </div>
 
         <div className="bg-white border-2 border-black rounded-xl p-5">
