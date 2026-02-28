@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Edit, ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
@@ -28,9 +28,18 @@ export default function CreatorProfileClient({
   const [socialState, setSocialState] = useState<any>(socials || {})
   const [bannerPreview, setBannerPreview] = useState('')
   const [uploadingBanner, setUploadingBanner] = useState(false)
-  const [uploadingImpressum, setUploadingImpressum] = useState(false)
+  const [showImpressumEditor, setShowImpressumEditor] = useState(false)
+  const [savingImpressum, setSavingImpressum] = useState(false)
+  const [impressumForm, setImpressumForm] = useState({
+    legal_name: '',
+    street: '',
+    zip_city: '',
+    country: 'Deutschland',
+    email: '',
+    phone: '',
+    website: '',
+  })
   const bannerInputRef = useRef<HTMLInputElement | null>(null)
-  const impressumInputRef = useRef<HTMLInputElement | null>(null)
   const bannerImageUrl =
     bannerPreview ||
     creator.banner_url ||
@@ -45,6 +54,12 @@ export default function CreatorProfileClient({
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
+  const creatorImpressumLink = creatorSlug ? `/impressum/${creatorSlug}` : '/impressum'
+  const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const shareLink = useMemo(() => {
+    if (!creatorSlug) return ''
+    return `${shareBaseUrl}/impressum/${creatorSlug}`
+  }, [creatorSlug, shareBaseUrl])
 
   // Helper functions (moved from server component)
   const getYouTubeEmbed = (input: string) => {
@@ -147,39 +162,28 @@ export default function CreatorProfileClient({
     }
   }
 
-  const handleImpressumImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-    if (!allowedTypes.includes(file.type)) {
-      alert('Nur JPG, PNG oder WEBP sind erlaubt.')
+  const handleSaveImpressumFromData = async () => {
+    if (!impressumForm.legal_name || !impressumForm.street || !impressumForm.zip_city) {
+      alert('Bitte mindestens Name, Straße und PLZ/Ort eintragen.')
       return
     }
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Datei zu groß (max. 3 MB).')
-      return
-    }
-
     try {
-      setUploadingImpressum(true)
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/creator/impressum', {
+      setSavingImpressum(true)
+      const response = await fetch('/api/creator/impressum/details', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(impressumForm),
       })
       const json = await response.json()
       if (!response.ok) {
-        throw new Error(json?.error || 'Upload fehlgeschlagen')
+        throw new Error(json?.error || 'Speichern fehlgeschlagen')
       }
-      alert('Creator-Impressum erfolgreich gespeichert.')
+      alert('Creator-Impressum gespeichert und Bild erzeugt.')
+      setShowImpressumEditor(false)
     } catch (error: any) {
-      alert(`Creator-Impressum Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+      alert(`Creator-Impressum Speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
-      setUploadingImpressum(false)
-      if (impressumInputRef.current) impressumInputRef.current.value = ''
+      setSavingImpressum(false)
     }
   }
 
@@ -205,9 +209,9 @@ export default function CreatorProfileClient({
               <img
                 src={bannerImageUrl}
                 alt={`${creator.artist_name} Banner`}
-                className="absolute inset-0 w-full h-full object-cover opacity-20"
+                className="absolute inset-0 w-full h-full object-cover opacity-60"
               />
-              <div className="absolute inset-0 bg-white/70" />
+              <div className="absolute inset-0 bg-black/10" />
             </>
           )}
           <div className="px-4 md:px-6 py-6 md:py-8 relative z-10">
@@ -465,56 +469,55 @@ export default function CreatorProfileClient({
           </div>
         )}
 
-        {/* CREATOR IMPRESSUM HINWEIS */}
-        <div className="px-4 md:px-6 pb-8 md:pb-10">
-          <div className="bg-zinc-50 border-2 border-black rounded-[2rem] p-4 md:p-5">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter">
-                Creator Impressum
-              </h3>
-              {isCreatorOwner && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => impressumInputRef.current?.click()}
-                    className="h-9 px-3 bg-black hover:bg-zinc-800 text-white rounded-full transition-colors flex items-center gap-2 text-xs font-bold uppercase"
-                    disabled={uploadingImpressum}
-                    title="Impressum-Bild hochladen (max 3 MB)"
-                  >
-                    {uploadingImpressum ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
-                    Impressum hochladen
-                  </button>
-                  <input
-                    ref={impressumInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleImpressumImageChange}
-                  />
-                </div>
-              )}
+        {/* CREATOR IMPRESSUM - dezenter Link unten mittig */}
+        <div className="px-4 md:px-6 pb-8 md:pb-10 text-center">
+          <a
+            href={creatorImpressumLink}
+            className="text-sm md:text-base font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
+          >
+            Creator Impressum (klick)
+          </a>
+          {isCreatorOwner && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowImpressumEditor((v) => !v)}
+                className="text-xs font-bold uppercase px-3 py-2 rounded-full border-2 border-black hover:bg-black hover:text-white transition-colors"
+              >
+                {showImpressumEditor ? 'Impressum Editor schließen' : 'Impressum bearbeiten'}
+              </button>
             </div>
-            <p className="text-sm md:text-base text-zinc-700">
-              Rechtliche Angaben dieses Creators erreichst du im Impressums-Bereich.
-              {creatorSlug ? (
-                <>
-                  {' '}
-                  Direkter Link:{' '}
-                  <a
-                    href={`/impressum/${creatorSlug}`}
-                    className="font-bold underline underline-offset-4 hover:text-red-600 transition-colors"
-                  >
-                    /impressum/{creatorSlug}
-                  </a>
-                </>
-              ) : (
-                ' Der personalisierte Link wird automatisch ergänzt, sobald der Slug gesetzt ist.'
-              )}
-            </p>
-            <p className="text-[11px] text-zinc-500 mt-2">
-              Schutz: private Speicherung in der Datenbank/Storage, öffentliche Anzeige nur über geschützte Auslieferung.
-            </p>
-          </div>
+          )}
         </div>
+
+        {showImpressumEditor && isCreatorOwner && (
+          <div className="px-4 md:px-6 pb-10">
+            <div className="bg-white border-2 border-black rounded-[1.5rem] p-4 md:p-5">
+              <h3 className="text-lg font-black uppercase mb-3">Impressum Daten</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Rechtlicher Name / Firma *" value={impressumForm.legal_name} onChange={(e) => setImpressumForm((p) => ({ ...p, legal_name: e.target.value }))} />
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Straße + Nr. *" value={impressumForm.street} onChange={(e) => setImpressumForm((p) => ({ ...p, street: e.target.value }))} />
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="PLZ + Ort *" value={impressumForm.zip_city} onChange={(e) => setImpressumForm((p) => ({ ...p, zip_city: e.target.value }))} />
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Land" value={impressumForm.country} onChange={(e) => setImpressumForm((p) => ({ ...p, country: e.target.value }))} />
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="E-Mail" value={impressumForm.email} onChange={(e) => setImpressumForm((p) => ({ ...p, email: e.target.value }))} />
+                <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Telefon" value={impressumForm.phone} onChange={(e) => setImpressumForm((p) => ({ ...p, phone: e.target.value }))} />
+                <input className="md:col-span-2 border-2 border-black rounded px-3 py-2 text-sm" placeholder="Webseite" value={impressumForm.website} onChange={(e) => setImpressumForm((p) => ({ ...p, website: e.target.value }))} />
+              </div>
+              <div className="mt-4 flex flex-col md:flex-row md:items-center gap-3">
+                <button
+                  onClick={handleSaveImpressumFromData}
+                  className="bg-black text-white px-4 py-2 rounded font-black uppercase text-xs hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                  disabled={savingImpressum}
+                >
+                  {savingImpressum ? <Loader2 size={14} className="animate-spin" /> : null}
+                  Bild erzeugen & speichern
+                </button>
+                <p className="text-xs text-zinc-600">
+                  Share-Link: {creatorSlug ? <a href={creatorImpressumLink} className="underline font-bold">{shareLink || creatorImpressumLink}</a> : 'wird nach Slug-Erstellung sichtbar'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
           </div>
         </div>

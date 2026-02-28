@@ -55,7 +55,8 @@ export default async function AdminUseruebersichtPage({
   if (q) {
     listQuery = listQuery.or(`artist_name.ilike.%${q}%,artist_name_slug.ilike.%${q}%`)
   }
-  if (activeThreshold) {
+  // WICHTIG: Bei manueller Suche immer global suchen (auch offline User finden)
+  if (activeThreshold && !q) {
     listQuery = listQuery.gte('updated_at', activeThreshold)
   }
 

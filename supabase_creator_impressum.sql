@@ -135,3 +135,53 @@ WITH CHECK (
   bucket_id = 'creator-impressum'
   AND get_my_role() = 'admin'
 );
+
+-- 6) Strukturierte Impressum-Daten (Creator gibt Daten ein, System erzeugt Bild)
+CREATE TABLE IF NOT EXISTS public.creator_impressum_details (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
+  legal_name TEXT NOT NULL,
+  street TEXT NOT NULL,
+  zip_city TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'Deutschland',
+  email TEXT,
+  phone TEXT,
+  website TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.creator_impressum_details ENABLE ROW LEVEL SECURITY;
+
+DROP TRIGGER IF EXISTS trg_creator_impressum_details_updated_at ON public.creator_impressum_details;
+CREATE TRIGGER trg_creator_impressum_details_updated_at
+BEFORE UPDATE ON public.creator_impressum_details
+FOR EACH ROW
+EXECUTE FUNCTION public.set_updated_at_creator_impressum_assets();
+
+DROP POLICY IF EXISTS "Owner can read own impressum details" ON public.creator_impressum_details;
+CREATE POLICY "Owner can read own impressum details"
+ON public.creator_impressum_details
+FOR SELECT
+USING (creator_id = auth.uid());
+
+DROP POLICY IF EXISTS "Owner can upsert own impressum details" ON public.creator_impressum_details;
+CREATE POLICY "Owner can upsert own impressum details"
+ON public.creator_impressum_details
+FOR INSERT
+WITH CHECK (creator_id = auth.uid());
+
+DROP POLICY IF EXISTS "Owner can update own impressum details" ON public.creator_impressum_details;
+CREATE POLICY "Owner can update own impressum details"
+ON public.creator_impressum_details
+FOR UPDATE
+USING (creator_id = auth.uid())
+WITH CHECK (creator_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins can manage all impressum details" ON public.creator_impressum_details;
+CREATE POLICY "Admins can manage all impressum details"
+ON public.creator_impressum_details
+FOR ALL
+USING (get_my_role() = 'admin')
+WITH CHECK (get_my_role() = 'admin');
