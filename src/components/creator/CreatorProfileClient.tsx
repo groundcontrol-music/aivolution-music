@@ -470,8 +470,8 @@ export default function CreatorProfileClient({
         )}
 
         {/* CREATOR IMPRESSUM - dezenter Link unten mittig */}
-        <div className="px-4 md:px-6 pb-8 md:pb-10 text-center">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-3">
+        <div className="px-4 md:px-6 pb-8 md:pb-10">
+          <div className="flex flex-col md:flex-row items-center justify-center md:justify-end gap-3">
             <a
               href={creatorImpressumLink}
               className="text-sm md:text-base font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600 transition-colors"
@@ -480,7 +480,7 @@ export default function CreatorProfileClient({
             </a>
             <a
               href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Bitte Creator und Werk melden: ${creator.artist_name} (${creatorImpressumLink})`)}`}
-              className="text-[11px] font-black uppercase px-3 py-2 rounded-full border-2 border-black hover:bg-black hover:text-white transition-colors"
+              className="text-[10px] font-black uppercase px-3 py-1.5 rounded-full border-2 border-black bg-red-600 text-white hover:bg-red-700 transition-colors"
             >
               Urheberrechtsverletzung melden
             </a>
