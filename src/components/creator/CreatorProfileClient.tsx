@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Edit, ExternalLink, ImagePlus, Loader2, Video } from 'lucide-react'
 import BioModal from '@/components/modals/BioModal'
@@ -63,11 +63,7 @@ export default function CreatorProfileClient({
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
   const creatorImpressumLink = creatorSlug ? `/impressum/${creatorSlug}` : '/impressum'
-  const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  const shareLink = useMemo(() => {
-    if (!creatorSlug) return ''
-    return `${shareBaseUrl}/impressum/${creatorSlug}`
-  }, [creatorSlug, shareBaseUrl])
+  const shareLink = creatorImpressumLink
   const songNotes = (socialState?._song_notes && typeof socialState._song_notes === 'object')
     ? socialState._song_notes
     : {}
@@ -511,9 +507,9 @@ export default function CreatorProfileClient({
           </div>
         </div>
 
-        {/* BIO + THE SHOW (Two Column) */}
+        {/* BIO + THE SHOW (Independent Boxes) */}
         <div className="px-4 md:px-6 py-7 md:py-10">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             
             {/* LEFT: BIO */}
             <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
@@ -545,54 +541,59 @@ export default function CreatorProfileClient({
               </div>
             </div>
 
-            {/* RIGHT: THE SHOW (2 Slots) */}
-            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
-              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
-                THE SHOW
-              </div>
-              <div className="grid md:grid-cols-2 gap-4 pt-4">
-                {videoSlots.map((videoUrl, idx) => {
-                  const slot = (idx + 1) as 1 | 2
-                  return (
-                    <div key={slot} className="bg-zinc-50 border-2 border-black rounded-[1.5rem] p-4">
-                      <div className="flex items-center justify-end gap-2 mb-3">
-                        {isCreatorOwner && (
-                          <button
-                            onClick={() => handleEditVideoSlot(slot)}
-                            className="text-[11px] px-2 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white transition-colors"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                      {videoUrl ? (
+            {videoSlots.map((videoUrl, idx) => {
+              const slot = (idx + 1) as 1 | 2
+              const ytEmbed = getYouTubeEmbed(videoUrl)
+              const ttEmbed = getTikTokEmbed(videoUrl)
+              return (
+                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden min-h-[320px] md:min-h-[400px]">
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
+                    {slot === 1 ? 'THE SHOW' : 'VIDEO 2'}
+                  </div>
+                  {isCreatorOwner && (
+                    <button
+                      onClick={() => handleEditVideoSlot(slot)}
+                      className="absolute top-4 right-4 z-20 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  <div className="absolute inset-0">
+                    {videoUrl ? (
+                      ytEmbed ? (
+                        <iframe
+                          src={ytEmbed}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : ttEmbed ? (
+                        <iframe
+                          src={ttEmbed}
+                          className="w-full h-full"
+                          allow="encrypted-media;"
+                          allowFullScreen
+                        />
+                      ) : (
                         <button
                           onClick={() => setSelectedVideo(videoUrl)}
-                          className="w-full bg-white border-2 border-black rounded-xl p-3 hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all group"
+                          className="w-full h-full bg-zinc-100 hover:bg-zinc-200 transition-colors flex items-center justify-center"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg border-2 border-black bg-red-600 flex items-center justify-center text-white">
-                              <Video size={20} />
-                            </div>
-                            <div className="flex-1 text-left">
-                              <p className="font-bold text-xs uppercase text-gray-900">
-                                {getVideoTypeLabel(videoUrl)} Video
-                              </p>
-                              <p className="text-[11px] text-gray-600 line-clamp-1">Klicken zum Öffnen</p>
-                            </div>
-                            <ExternalLink size={16} className="text-red-600" />
+                          <div className="flex items-center gap-2 text-sm font-black uppercase">
+                            <span>{getVideoTypeLabel(videoUrl)} öffnen</span>
+                            <ExternalLink size={16} />
                           </div>
                         </button>
-                      ) : (
-                        <div className="h-[88px] border-2 border-dashed border-zinc-300 rounded-xl flex items-center justify-center text-xs text-zinc-500">
-                          Keine URL hinterlegt
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+                      )
+                    ) : (
+                      <div className="w-full h-full border-2 border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-500 bg-zinc-50">
+                        Keine URL hinterlegt
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
 
           </div>
         </div>

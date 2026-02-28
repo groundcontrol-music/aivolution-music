@@ -18,6 +18,10 @@ export default function CompactSongCard({ songId, title, artist, price, coverUrl
   const { play, currentTrack, isPlaying } = usePlayer()
   const isThisTrackPlaying = currentTrack?.id === songId && isPlaying
 
+  const handleOpen = () => {
+    if (onOpen) onOpen()
+  }
+
   const handlePlay = () => {
     if (!previewUrl) {
       alert('Vorschau nicht verfügbar')
@@ -33,9 +37,16 @@ export default function CompactSongCard({ songId, title, artist, price, coverUrl
   }
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleOpen()
+        }
+      }}
       className="group w-16 h-16 md:w-20 md:h-20 bg-white border-2 border-black rounded-[1.5rem] overflow-hidden hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] transition-all duration-200 relative"
       title={title}
     >
@@ -56,7 +67,10 @@ export default function CompactSongCard({ songId, title, artist, price, coverUrl
         {previewUrl && (
           <button
             type="button"
-            onClick={handlePlay}
+            onClick={(e) => {
+              e.stopPropagation()
+              handlePlay()
+            }}
             className="absolute inset-0 bg-black/0 group-hover:bg-black/60 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform ${isThisTrackPlaying ? 'bg-green-600 animate-pulse' : 'bg-red-600'}`}>
@@ -68,6 +82,6 @@ export default function CompactSongCard({ songId, title, artist, price, coverUrl
       <span className="absolute -bottom-2 -right-2 bg-white border-2 border-black rounded-full px-2 py-0.5 text-[10px] font-black text-red-600">
         €{price.toFixed(2)}
       </span>
-    </button>
+    </div>
   )
 }
