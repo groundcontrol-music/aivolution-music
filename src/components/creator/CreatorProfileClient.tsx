@@ -377,15 +377,15 @@ export default function CreatorProfileClient({
           <div className="bg-white border-2 border-black rounded-[2.5rem] overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         
         {/* HERO SECTION */}
-        <div className="bg-white border-b-2 border-black relative overflow-visible">
+        <div className="bg-white border-b-2 border-black relative overflow-visible rounded-b-[2.5rem]">
           {bannerImageUrl && (
             <>
               <img
                 src={bannerImageUrl}
                 alt={`${creator.artist_name} Banner`}
-                className="absolute inset-0 w-full h-full object-cover opacity-60"
+                className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/10" />
+              {/* No opacity or overlay on banner */}
             </>
           )}
           <div className="px-4 md:px-6 py-4 md:py-5 relative z-10">
@@ -393,9 +393,12 @@ export default function CreatorProfileClient({
             <div className="flex flex-col md:flex-row gap-5 items-start">
               
               {/* LEFT: Avatar + Small Thumbnails */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 z-10">
                 {/* Main Avatar */}
-                <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-[2.5rem] border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4">
+                <div 
+                  className="relative w-36 h-36 md:w-44 md:h-44 rounded-[2.5rem] border-4 border-black shadow-[10px_10px_0px_0px_rgba(220,38,38,1)] overflow-hidden bg-zinc-100 mb-4 cursor-pointer"
+                  onClick={() => creator.avatar_url && setSelectedImage(creator.avatar_url)}
+                >
                   {(avatarPreview || creator.avatar_url) ? (
                     <img src={avatarPreview || creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover" />
                   ) : (
@@ -406,7 +409,10 @@ export default function CreatorProfileClient({
                   {isCreatorOwner && (
                     <>
                       <button
-                        onClick={() => avatarInputRef.current?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          avatarInputRef.current?.click()
+                        }}
                         className="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white transition-colors text-xs font-black flex items-center justify-center"
                         title="Avatar bearbeiten"
                         disabled={uploadingAvatar}
@@ -518,7 +524,7 @@ export default function CreatorProfileClient({
               </div>
 
               {/* RIGHT: Info + Aivo */}
-              <div className="flex-1 min-w-0 relative">
+              <div className="flex-1 min-w-0 relative z-10">
                 
                 {/* Name + Banner Upload */}
                 <div className="flex items-start gap-4 mb-4">
@@ -581,7 +587,7 @@ export default function CreatorProfileClient({
             
             {/* LEFT: BIO */}
             <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 h-[350px] overflow-hidden">
-              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
+              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
                 BIO
               </div>
               {isCreatorOwner && (
