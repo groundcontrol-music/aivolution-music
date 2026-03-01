@@ -108,11 +108,11 @@ export default function Header() {
                 )}
               </Link>
 
-              {/* Cart */}
+              {/* Warenkorb: Käufe gelistet, zukünftig Stripe-Checkout. Verkäufer-Einnahmen/Management im Creator-Profil. */}
               <Link 
                 href="/cart" 
                 className="relative p-2 hover:bg-zinc-100 rounded-sm transition-colors border-2 border-transparent hover:border-black"
-                title="Warenkorb"
+                title="Warenkorb / Meine Käufe"
               >
                 <ShoppingCart size={20} />
                 {cartItems > 0 && (

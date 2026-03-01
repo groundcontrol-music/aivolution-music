@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
+import ImpressumImage from '@/components/impressum/ImpressumImage'
 
 export const metadata = {
   title: 'Creator Impressum | Aivolution Music',
@@ -50,14 +51,8 @@ export default async function CreatorImpressumPage({
                 <br />
                 Hinweis: Die Inhalte liegen in der Verantwortung des jeweiligen Creators.
               </p>
-              <div className="border-2 border-black rounded-[1.5rem] p-3 bg-zinc-100 relative overflow-hidden">
-                <img
-                  src={`/api/public/impressum-image?slug=${encodeURIComponent(creator.artist_name_slug)}`}
-                  alt={`Creator Impressum von ${creator.artist_name}`}
-                  className="w-full h-auto rounded-xl select-none pointer-events-none"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="border-2 border-black rounded-[1.5rem] p-3 bg-zinc-100 relative overflow-hidden min-h-[120px]">
+                <ImpressumImage slug={creator.artist_name_slug} alt={`Creator Impressum von ${creator.artist_name}`} />
                 <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0)_0%,rgba(255,255,255,0.09)_100%)] pointer-events-none" />
                 <div className="absolute inset-0 pointer-events-none opacity-[0.08] mix-blend-multiply bg-[linear-gradient(45deg,#000_0%,transparent_12%,#000_24%,transparent_36%,#000_48%,transparent_60%,#000_72%,transparent_84%,#000_100%)]" />
               </div>
