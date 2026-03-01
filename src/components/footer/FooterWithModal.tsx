@@ -55,14 +55,11 @@ export default function FooterWithModal({ variant, creatorImpressumLink, creator
               {sep}
             </>
           )}
-          {variant === 'home' && (
-            <>
-              <button type="button" onClick={() => openModal('impressum')} className={linkClass}>
-                Impressum
-              </button>
-              {sep}
-            </>
-          )}
+          {/* Plattform-Impressum auf Startseite und Creator-Profil (Creator Impressum liegt im Bio-Feld) */}
+          <button type="button" onClick={() => openModal('impressum')} className={linkClass}>
+            Impressum
+          </button>
+          {sep}
           <button type="button" onClick={() => openModal('agb')} className={linkClass}>
             AGB
           </button>

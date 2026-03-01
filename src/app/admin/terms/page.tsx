@@ -17,17 +17,6 @@ export default async function AdminTermsPage() {
     .select('*')
     .order('sort_order')
 
-  let legalPages: { key: string; title: string; content: string }[] = []
-  try {
-    const { data } = await supabase
-      .from('legal_pages')
-      .select('key, title, content')
-      .in('key', ['impressum', 'agb', 'datenschutz', 'hilfe'])
-    legalPages = data ?? []
-  } catch {
-    // Tabelle legal_pages ggf. noch nicht angelegt – SQL aus supabase_legal_pages.sql ausführen
-  }
-
   return (
     <div className="space-y-10">
       <div className="flex justify-between items-end border-b-2 border-black pb-4">
@@ -53,7 +42,7 @@ export default async function AdminTermsPage() {
         <p className="text-xs font-bold uppercase text-zinc-500 mb-6">
           Breite Boxen für Din-A4-Ansicht. Texte erscheinen auf /agb, /datenschutz und /hilfe.
         </p>
-        <LegalEditor initial={legalPages} />
+        <LegalEditor />
       </section>
     </div>
   )

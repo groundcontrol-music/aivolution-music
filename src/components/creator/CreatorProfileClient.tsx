@@ -511,7 +511,7 @@ export default function CreatorProfileClient({
                 })}
               </div>
 
-              {/* BIO – volle Breite, zentriert */}
+              {/* BIO – volle Breite, zentriert; Creator Impressum mittig unten im Bio-Feld */}
               <div className="mt-6 relative">
                 <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
                   BIO
@@ -534,21 +534,33 @@ export default function CreatorProfileClient({
                           {savingBio ? '...' : 'Speichern'}
                         </button>
                       </div>
+                      <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
+                        <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
+                          Creator Impressum
+                        </a>
+                      </p>
                     </>
                   ) : (
-                    <p className="text-sm leading-relaxed text-gray-800 text-center whitespace-pre-line">
-                      {bioDraft || 'Keine Bio vorhanden.'}
-                    </p>
+                    <>
+                      <p className="text-sm leading-relaxed text-gray-800 text-center whitespace-pre-line">
+                        {bioDraft || 'Keine Bio vorhanden.'}
+                      </p>
+                      <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
+                        <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
+                          Creator Impressum
+                        </a>
+                      </p>
+                    </>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* MUSIC SHOP */}
+            {/* MUSIC SHOP – Headline mit Creator-Namen */}
             {shopSongs.length > 0 && (
               <div className="px-4 md:px-6 py-7 md:py-10">
                 <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter mb-6">
-                  MUSIC SHOP <span className="text-red-600 ml-3">({shopSongs.length})</span>
+                  {creator.artist_name} Music Shop <span className="text-red-600 ml-3">({shopSongs.length})</span>
                 </h2>
                 <div className="mb-5 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                   <input
@@ -596,21 +608,23 @@ export default function CreatorProfileClient({
               </div>
             )}
 
-            {/* Footer: Creator Impressum, AGB, Hilfe – Klick öffnet große Modal-Box */}
-            <div className="px-4 md:px-6 pb-6 text-center">
-              <FooterWithModal
-                variant="creator"
-                creatorImpressumLink={creatorImpressumLink}
-                creatorImpressumLabel="Creator Impressum (klick)"
-              />
-              <a
-                href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Creator und Werk: ${creator.artist_name} (${creatorImpressumLink})`)}`}
-                className="inline-block text-[9px] font-black uppercase px-2 py-1 rounded-full border border-black bg-red-600 text-white hover:bg-red-700 mt-2"
-              >
-                Urheberrechtsverletzung melden
-              </a>
+            {/* Footer: nur AGB, Datenschutz, Hilfe (Creator Impressum ist im Bio-Feld); Meldebutton rechts unten */}
+            <div className="px-4 md:px-6 pb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex justify-center md:justify-start order-2 md:order-1">
+                  <FooterWithModal variant="creator" />
+                </div>
+                <div className="flex justify-center md:justify-end order-1 md:order-2">
+                  <a
+                    href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Creator und Werk: ${creator.artist_name} (${creatorImpressumLink})`)}`}
+                    className="inline-block text-[9px] font-black uppercase px-2 py-1 rounded-full border border-black bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Urheberrechtsverletzung melden
+                  </a>
+                </div>
+              </div>
               {isCreatorOwner && (
-                <div className="mt-3">
+                <div className="mt-3 text-center">
                   <button
                     onClick={() => setShowImpressumEditor((v) => !v)}
                     className="text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-black hover:bg-black hover:text-white"
