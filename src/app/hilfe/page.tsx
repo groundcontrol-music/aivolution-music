@@ -4,28 +4,19 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Impressum | Aivolution Music',
-  description: 'Rechtliche Anbieterkennzeichnung von Aivolution Music.',
+  title: 'Hilfe | Aivolution Music',
+  description: 'Hilfe und häufig gestellte Fragen zu Aivolution Music.',
 }
 
-const FALLBACK_TITLE = 'Impressum'
-const FALLBACK_CONTENT = `Aivolution Music Hosting
-Landstrasse 73
-31717 Nordsehl
-
-Kontakt: folgt
-
-Texte unter Kommandozentrale → Terms verwalten bearbeiten.`
-
-export default async function ImpressumPage() {
-  let title = FALLBACK_TITLE
-  let content = FALLBACK_CONTENT
+export default async function HilfePage() {
+  let title = 'Hilfe'
+  let content = 'Hilfe und häufig gestellte Fragen. Der Inhalt kann in der Kommandozentrale unter Terms verwalten bearbeitet werden.'
   try {
     const supabase = await createClient()
     const { data } = await supabase
       .from('legal_pages')
       .select('title, content')
-      .eq('key', 'impressum')
+      .eq('key', 'hilfe')
       .single()
     if (data?.title) title = data.title
     if (data?.content) content = data.content

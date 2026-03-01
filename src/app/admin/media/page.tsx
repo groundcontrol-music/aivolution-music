@@ -36,12 +36,18 @@ export default async function AdminMediaPage() {
     { onConflict: 'slot_id', ignoreDuplicates: true }
   )
 
-  // Fetch Media Slots (1-4, 5=Highlight, 99=Welcome, 201/202=Kuration-Mailtexte)
-  const { data: slots } = await supabase
+  // Fetch Media Slots: 1–3 Startseite, 5=Highlight (an Stelle von Slot 4), 99=Welcome, 201/202=Kuration-Mailtexte.
+  const { data: rawSlots } = await supabase
     .from('promo_slots')
     .select('*')
-    .in('slot_id', [1, 2, 3, 4, 5, 99, 201, 202])
+    .in('slot_id', [1, 2, 3, 5, 99, 201, 202])
     .order('slot_id')
+  const filtered = (rawSlots ?? []).filter((s: { slot_id: number }) => s.slot_id !== 4)
+  // Reihenfolge: 1, 2, 3, 5 (Highlight rutscht in die vierte Editierbox-Position), dann 99, 201, 202
+  const order = [1, 2, 3, 5, 99, 201, 202]
+  const slots = order
+    .map((id) => filtered.find((s: { slot_id: number }) => s.slot_id === id))
+    .filter(Boolean)
 
   return (
     <div className="min-h-screen bg-zinc-50 p-8">
@@ -68,8 +74,8 @@ export default async function AdminMediaPage() {
           </p>
         </div>
 
-        {/* Media Slots Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Erste Zeile: 3 Media-Boxen + Highlight-Box (an Stelle von Slot 4), danach Welcome/Kuration */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {slots && slots.map((slot: any) => (
             <MediaSlotEditor key={slot.id ?? `slot-${slot.slot_id}`} slot={slot} />
           ))}

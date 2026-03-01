@@ -26,12 +26,20 @@ export default function MessagesPage() {
   const [filter, setFilter] = useState<'all' | 'curation' | 'system' | 'application' | 'private' | 'forum' | 'global'>('all')
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     fetchMessages()
   }, [filter])
+
+  // Admin-only Filter zurücksetzen, wenn User kein Admin ist
+  useEffect(() => {
+    if (!isAdmin && ['curation', 'application', 'system'].includes(filter)) {
+      setFilter('all')
+    }
+  }, [isAdmin, filter])
 
   const fetchMessages = async () => {
     setLoading(true)
@@ -64,8 +72,9 @@ export default function MessagesPage() {
       }))
     }
 
-    // Stabiler Fallback: Für Admins submitted-Bewerbungen auch ohne Message-Inserts anzeigen
+    // Rolle für Tab-Sichtbarkeit: Kuration/Bewerbung/System nur für Admin
     const { data: role } = await supabase.rpc('get_my_role')
+    setIsAdmin(role === 'admin')
     if (role === 'admin') {
       const { data: pendingProfiles } = await supabase
         .from('profiles')
@@ -183,9 +192,12 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs: Kuration, Bewerbung, System nur für Admin */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'curation', 'application', 'system', 'private', 'forum', 'global'].map((type) => (
+          {(isAdmin
+            ? ['all', 'curation', 'application', 'system', 'private', 'forum', 'global']
+            : ['all', 'private', 'forum', 'global']
+          ).map((type) => (
             <button
               key={type}
               onClick={() => setFilter(type as any)}

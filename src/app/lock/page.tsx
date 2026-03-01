@@ -37,6 +37,11 @@ export default function LockPage() {
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
+  const [showBypass, setShowBypass] = useState(false)
+  const [bypassUser, setBypassUser] = useState('')
+  const [bypassPassword, setBypassPassword] = useState('')
+  const [bypassError, setBypassError] = useState('')
+  const [bypassLoading, setBypassLoading] = useState(false)
   const [announcements, setAnnouncements] = useState<Array<{ id: string; content: string; created_at: string }>>([])
   const dirRef = useRef<Dir>(dir)
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -96,7 +101,7 @@ export default function LockPage() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (gameOver || showLogin) return
+      if (gameOver || showLogin || showBypass) return
       const d = dirRef.current
       if (e.key === 'ArrowUp' && d !== 'down') setDir('up')
       else if (e.key === 'ArrowDown' && d !== 'up') setDir('down')
@@ -158,6 +163,26 @@ export default function LockPage() {
       return
     }
     setLoginError(data.error || 'Login fehlgeschlagen')
+  }
+
+  async function handleBypass(e: React.FormEvent) {
+    e.preventDefault()
+    setBypassError('')
+    setBypassLoading(true)
+    const res = await fetch('/api/auth/lock-bypass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: bypassUser.trim(), password: bypassPassword }),
+      redirect: 'follow',
+      credentials: 'include',
+    })
+    setBypassLoading(false)
+    if (res.ok) {
+      window.location.href = '/'
+      return
+    }
+    const data = await res.json().catch(() => ({}))
+    setBypassError(data.error || 'Fehlgeschlagen')
   }
 
   const w = GRID_SIZE * cellSize
@@ -316,7 +341,55 @@ export default function LockPage() {
         </div>
       )}
 
-      <div className="pt-1">
+      <div className="pt-1 flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowBypass((v) => !v)}
+          className="text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-white/70 transition-colors"
+        >
+          {showBypass ? 'Sperre umgehen ausblenden' : 'Sperre umgehen'}
+        </button>
+        {showBypass && (
+          <form
+            onSubmit={handleBypass}
+            className="w-full max-w-sm bg-black border border-white/30 rounded-[1.5rem] p-4 space-y-3"
+          >
+            <p className="text-[10px] text-white/60 uppercase text-center">
+              Anmeldename + Passwort (aus .env) → Sperre deaktivieren
+            </p>
+            <input
+              type="text"
+              value={bypassUser}
+              onChange={(e) => setBypassUser(e.target.value)}
+              placeholder="Anmeldename"
+              className="w-full p-2 bg-black border border-white/50 text-white rounded-lg text-sm focus:outline-none focus:border-red-500"
+              required
+            />
+            <input
+              type="password"
+              value={bypassPassword}
+              onChange={(e) => setBypassPassword(e.target.value)}
+              placeholder="Passwort"
+              className="w-full p-2 bg-black border border-white/50 text-white rounded-lg text-sm focus:outline-none focus:border-red-500"
+              required
+            />
+            {bypassError && <p className="text-red-500 text-xs text-center">{bypassError}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowBypass(false)} className="flex-1 py-2 border border-white/50 rounded-lg text-xs uppercase text-white/80">
+                Abbrechen
+              </button>
+              <button type="submit" disabled={bypassLoading} className="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs uppercase font-bold disabled:opacity-50">
+                {bypassLoading ? '...' : 'Sperre deaktivieren'}
+              </button>
+            </div>
+          </form>
+        )}
+        <Link
+          href="/api/auth/lock-bypass-clear"
+          className="text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-red-500 transition-colors"
+        >
+          Sperre wieder aktivieren (Cookie löschen)
+        </Link>
         <Link
           href="/impressum"
           className="text-[11px] font-bold uppercase tracking-wider text-white/50 hover:text-red-500 transition-colors underline underline-offset-4"

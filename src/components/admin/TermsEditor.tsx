@@ -59,10 +59,11 @@ export default function TermsEditor({ initialTerms }: { initialTerms: Term[] }) 
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {terms.map((term) => (
         <div
           key={term.id}
-          className={`border-2 border-black p-4 rounded-lg ${!term.is_active ? 'opacity-50 bg-zinc-100' : 'bg-white'}`}
+          className={`border-2 border-black p-3 rounded-[1.5rem] max-w-sm ${!term.is_active ? 'opacity-50 bg-zinc-100' : 'bg-white'}`}
         >
           {editingId === term.id ? (
             <div className="space-y-3">
@@ -130,6 +131,7 @@ export default function TermsEditor({ initialTerms }: { initialTerms: Term[] }) 
           )}
         </div>
       ))}
+      </div>
 
       <button
         className="w-full p-4 border-2 border-dashed border-black rounded-lg hover:bg-zinc-50 transition-colors flex items-center justify-center gap-2 font-bold uppercase text-sm"

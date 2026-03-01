@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { ExternalLink, ImagePlus, Loader2 } from 'lucide-react'
 import CompactSongCard from './CompactSongCard'
+import FooterWithModal from '@/components/footer/FooterWithModal'
 
 type CreatorProfileClientProps = {
   creator: any
@@ -595,19 +596,19 @@ export default function CreatorProfileClient({
               </div>
             )}
 
-            {/* IMPRESSUM */}
+            {/* Footer: Creator Impressum, AGB, Hilfe – Klick öffnet große Modal-Box */}
             <div className="px-4 md:px-6 pb-6 text-center">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <a href={creatorImpressumLink} className="text-xs md:text-sm font-black uppercase tracking-wide underline underline-offset-4 hover:text-red-600">
-                  Creator Impressum (klick)
-                </a>
-                <a
-                  href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Creator und Werk: ${creator.artist_name} (${creatorImpressumLink})`)}`}
-                  className="text-[9px] font-black uppercase px-2 py-1 rounded-full border border-black bg-red-600 text-white hover:bg-red-700"
-                >
-                  Urheberrechtsverletzung melden
-                </a>
-              </div>
+              <FooterWithModal
+                variant="creator"
+                creatorImpressumLink={creatorImpressumLink}
+                creatorImpressumLabel="Creator Impressum (klick)"
+              />
+              <a
+                href={`mailto:folgt?subject=${encodeURIComponent('Urheberrechtsverletzung melden')}&body=${encodeURIComponent(`Creator und Werk: ${creator.artist_name} (${creatorImpressumLink})`)}`}
+                className="inline-block text-[9px] font-black uppercase px-2 py-1 rounded-full border border-black bg-red-600 text-white hover:bg-red-700 mt-2"
+              >
+                Urheberrechtsverletzung melden
+              </a>
               {isCreatorOwner && (
                 <div className="mt-3">
                   <button

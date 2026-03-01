@@ -44,7 +44,7 @@ export default async function AdminNavWithBadges() {
   const { count: mediaCount } = await supabase
     .from('promo_slots')
     .select('*', { count: 'exact', head: true })
-    .in('slot_id', [1, 2, 3, 4])
+    .in('slot_id', [1, 2, 3])
     .not('media_type', 'is', null)
     .neq('media_type', 'none')
 

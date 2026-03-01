@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
+import FooterWithModal from '@/components/footer/FooterWithModal'
 
 // Kachelgröße wie Creator-Profil-Header (editierbare Media-Boxen)
 const BOX_SIZE = 'w-16 h-16 md:w-20 md:h-20'
@@ -14,14 +15,15 @@ export default async function Home() {
   const mediaSlots = slots?.filter((s) => [1, 2, 3].includes(s.slot_id)) ?? []
   const highlight = slots?.find((s) => s.slot_id === 5)
 
-  // Neue Creator (unter den 3 Media-Boxen)
+  // Neue Creator: approved + (public oder visibility noch nicht gesetzt); Profilbild in bekannter Kachelgröße
   const { data: newCreators } = await supabase
     .from('profiles')
     .select('id, artist_name, artist_name_slug, avatar_url, created_at')
     .eq('role', 'creator')
     .eq('onboarding_status', 'approved')
+    .or('visibility.eq.public,visibility.is.null')
     .order('created_at', { ascending: false })
-    .limit(6)
+    .limit(12)
 
   // Top Ten (nach Verkäufen → download_count)
   const { data: topTenRows } = await supabase
@@ -152,24 +154,25 @@ export default async function Home() {
                     Creator werden
                   </Link>
                 </div>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 flex-1 content-start">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 flex-1 content-start">
                   {newCreators && newCreators.length > 0 ? (
                     newCreators.map((creator) => (
                       <Link
                         key={creator.id}
                         href={`/creator/${creator.artist_name_slug || creator.id}`}
-                        className="group bg-white border-2 border-black rounded-[1.5rem] p-2 flex flex-col items-center justify-center gap-1.5 hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] hover:-translate-y-0.5 transition-all cursor-pointer aspect-square"
+                        className="group flex flex-col items-center text-center hover:shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] hover:-translate-y-0.5 transition-all cursor-pointer"
                       >
-                        <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-100 rounded-full border-2 border-black group-hover:border-red-600 overflow-hidden flex-shrink-0 transition-all">
+                        {/* Profilbild in bekannter Boxengröße (wie Creator-Profil-Header / Media-Boxen) */}
+                        <div className={`${BOX_SIZE} ${BOX_ROUND} border-2 border-black bg-zinc-100 overflow-hidden flex-shrink-0 group-hover:border-red-600 transition-all`}>
                           {creator.avatar_url ? (
-                            <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300" />
+                            <img src={creator.avatar_url} alt={creator.artist_name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl font-black text-zinc-300 group-hover:text-red-600 transition-colors">
+                            <div className="w-full h-full flex items-center justify-center text-3xl font-black text-zinc-300 group-hover:text-red-600 transition-colors">
                               {creator.artist_name?.charAt(0).toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <p className="font-black uppercase text-[9px] text-center leading-tight line-clamp-2 w-full px-1 group-hover:text-red-600 transition-colors">{creator.artist_name}</p>
+                        <p className="mt-1.5 font-black uppercase text-[9px] leading-tight line-clamp-2 w-full px-1 group-hover:text-red-600 transition-colors">{creator.artist_name}</p>
                         <p className="text-[7px] opacity-40 font-mono uppercase tracking-wider">
                           {new Date(creator.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}
                         </p>
@@ -309,6 +312,9 @@ export default async function Home() {
                 ))}
               </section>
             )}
+
+            {/* Footer: Impressum, AGB, Hilfe – Klick öffnet große Modal-Box */}
+            <FooterWithModal variant="home" />
           </div>
         </div>
       </div>
