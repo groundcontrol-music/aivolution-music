@@ -27,6 +27,7 @@ export default function CreatorProfileClient({
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
   const [selectedSong, setSelectedSong] = useState<any | null>(null)
   const [savingSongNote, setSavingSongNote] = useState(false)
+  const [songNoteDraft, setSongNoteDraft] = useState('')
   const [socialState, setSocialState] = useState<any>(socials || {})
   const [bioDraft, setBioDraft] = useState(creator.bio || '')
   const [savingBio, setSavingBio] = useState(false)
@@ -83,7 +84,12 @@ export default function CreatorProfileClient({
     return match ? `https://www.tiktok.com/embed/v2/${match[1]}` : null
   }
 
-  const videoSlots = [socialState.video_1 || '', socialState.video_2 || '']
+  const [isBioExpanded, setIsBioExpanded] = useState(false)
+  const videoSlots = [
+    { key: 'video_intro', label: 'THE SHOW' },
+    { key: 'video_1', label: 'THE SHOW B' },
+    { key: 'video_2', label: 'THE SHOW C' }
+  ]
 
   // Get featured content (fallback for thumbnails)
   const featuredSongs = songs.slice(0, 3)
@@ -136,17 +142,22 @@ export default function CreatorProfileClient({
 
       if (!error) return
       if (!String(error?.message || '').toLowerCase().includes('column')) {
+        console.error('Banner Update Error:', error)
         throw error
       }
     }
 
+    // Fallback: In social_links speichern
     const nextSocials = { ...(socialState || {}), _banner_url: url }
     const { error: fallbackError } = await supabase
       .from('profiles')
       .update({ social_links: nextSocials } as any)
       .eq('id', creator.id)
 
-    if (fallbackError) throw fallbackError
+    if (fallbackError) {
+      console.error('Banner Fallback Error:', fallbackError)
+      throw fallbackError
+    }
     setSocialState(nextSocials)
   }
 
@@ -320,16 +331,16 @@ export default function CreatorProfileClient({
     return 'Extern'
   }
 
-  const handleEditVideoSlot = async (slot: 1 | 2) => {
-    const current = socialState[`video_${slot}`] || ''
-    const next = window.prompt(`Video-Link für Slot ${slot} (TikTok/YouTube/Suno):`, current)
+  const handleEditVideoSlot = async (key: string) => {
+    const current = socialState[key] || ''
+    const next = window.prompt(`Video-Link für ${key} (TikTok/YouTube/Suno):`, current)
     if (next === null) return
     const trimmed = next.trim()
     try {
-      await upsertSocialLinks({ [`video_${slot}`]: trimmed || null })
-      alert(`Video-Slot ${slot} gespeichert.`)
+      await upsertSocialLinks({ [key]: trimmed || null })
+      alert(`Video-Slot gespeichert.`)
     } catch (error: any) {
-      alert(`Video-Slot ${slot} speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+      alert(`Video-Slot speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     }
   }
 
@@ -474,7 +485,10 @@ export default function CreatorProfileClient({
                           {isCreatorOwner && (
                             <>
                               <button 
-                                onClick={() => thumbInputRefs.current[slot]?.click()}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  thumbInputRefs.current[slot]?.click()
+                                }}
                                 className="absolute -bottom-2 -right-2 w-7 h-7 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors z-10 shadow-sm"
                                 title="Bild bearbeiten"
                               >
@@ -540,7 +554,10 @@ export default function CreatorProfileClient({
                     <div className="flex flex-col items-start gap-2">
                       <div className="flex items-center gap-2">
                       <button
-                        onClick={() => bannerInputRef.current?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          bannerInputRef.current?.click()
+                        }}
                         className="h-10 px-3 bg-black hover:bg-zinc-800 text-white rounded-full transition-colors flex items-center gap-2 text-xs font-bold uppercase"
                         title="Bannerbild hochladen (max 3 MB)"
                         disabled={uploadingBanner}
@@ -581,53 +598,24 @@ export default function CreatorProfileClient({
           </div>
         </div>
 
-        {/* BIO + THE SHOW (Independent Boxes) */}
+        {/* MEDIA GRID (3 BOXES) */}
         <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="grid md:grid-cols-3 gap-6">
             
-              {/* LEFT: BIO */}
-            <div className="relative bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 h-[175px] overflow-hidden">
-              <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
-                BIO
-              </div>
-              {isCreatorOwner && (
-                <button
-                  onClick={handleSaveBio}
-                  className="absolute top-4 right-4 text-[10px] px-2 py-0.5 border border-black rounded-full hover:bg-black hover:text-white transition-colors z-30"
-                  disabled={savingBio}
-                >
-                  {savingBio ? '...' : 'Save'}
-                </button>
-              )}
-              <div className="text-sm leading-relaxed text-gray-700 h-full overflow-y-auto pt-2 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex items-center">
-                {isCreatorOwner ? (
-                  <textarea
-                    value={bioDraft}
-                    onChange={(e) => setBioDraft(e.target.value)}
-                    placeholder="Deine Bio..."
-                    className="w-full h-full bg-transparent p-0 text-sm leading-relaxed resize-none focus:outline-none border-0"
-                  />
-                ) : (
-                  <p className="whitespace-pre-line w-full text-center">
-                    {bioDraft || 'Keine Bio vorhanden.'}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {videoSlots.map((videoUrl, idx) => {
-              const slot = (idx + 1) as 1 | 2
+            {videoSlots.map((slotInfo) => {
+              const videoUrl = socialState[slotInfo.key] || ''
               const ytEmbed = getYouTubeEmbed(videoUrl)
               const ttEmbed = getTikTokEmbed(videoUrl)
+              
               return (
-                <div key={slot} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[175px]">
-                  <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide">
-                    {slot === 1 ? 'THE SHOW' : 'THE SHOW B'}
+                <div key={slotInfo.key} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[175px]">
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
+                    {slotInfo.label}
                   </div>
                   {isCreatorOwner && (
                     <button
-                      onClick={() => handleEditVideoSlot(slot)}
-                      className="absolute top-4 right-4 z-20 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
+                      onClick={() => handleEditVideoSlot(slotInfo.key)}
+                      className="absolute top-4 right-4 z-30 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
                     >
                       Edit
                     </button>
@@ -669,6 +657,46 @@ export default function CreatorProfileClient({
               )
             })}
 
+          </div>
+
+          {/* BIO SECTION (Below Grid) */}
+          <div className="mt-6 px-2">
+             <div className="relative">
+                {isCreatorOwner ? (
+                  <div className="relative">
+                    <textarea
+                      value={bioDraft}
+                      onChange={(e) => setBioDraft(e.target.value)}
+                      placeholder="Deine Bio hier schreiben..."
+                      className="w-full min-h-[100px] bg-transparent p-2 text-sm leading-relaxed border-2 border-dashed border-zinc-300 rounded-xl focus:border-black focus:outline-none resize-y"
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handleSaveBio}
+                        disabled={savingBio}
+                        className="text-[10px] px-3 py-1 border border-black rounded-full hover:bg-black hover:text-white transition-colors bg-white"
+                      >
+                        {savingBio ? 'Speichert...' : 'Bio Speichern'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className={`text-sm leading-relaxed text-gray-800 ${!isBioExpanded ? 'line-clamp-4' : ''}`}
+                    onClick={() => setIsBioExpanded(!isBioExpanded)}
+                  >
+                    {bioDraft || 'Keine Bio vorhanden.'}
+                  </div>
+                )}
+                {!isCreatorOwner && bioDraft && bioDraft.length > 200 && (
+                   <button 
+                     onClick={() => setIsBioExpanded(!isBioExpanded)}
+                     className="text-[10px] font-bold uppercase mt-1 hover:text-red-600 transition-colors"
+                   >
+                     {isBioExpanded ? 'Weniger anzeigen' : '... Mehr anzeigen'}
+                   </button>
+                )}
+             </div>
           </div>
         </div>
 

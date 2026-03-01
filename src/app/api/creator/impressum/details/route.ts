@@ -107,7 +107,12 @@ export async function POST(request: Request) {
     }, { onConflict: 'creator_id' })
 
   if (assetError) {
-    return NextResponse.json({ error: assetError.message }, { status: 400 })
+    console.error('Impressum Asset Error:', assetError)
+    // Fallback: Nur Details speichern, wenn Asset fehlschlägt
+    return NextResponse.json({ 
+      ok: true, 
+      warning: 'Asset konnte nicht gespeichert werden, aber Details sind gesichert' 
+    })
   }
 
   return NextResponse.json({ ok: true })

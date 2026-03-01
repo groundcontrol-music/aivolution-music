@@ -67,9 +67,9 @@ export default function Header() {
   }
 
   return (
-    <header className="border-b-4 border-black bg-white sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-black uppercase italic tracking-tighter">
+    <header className="bg-white sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-4 md:px-4 py-4 flex justify-between items-center border-b-4 border-black">
+        <Link href="/" className="text-4xl font-black uppercase italic tracking-tighter">
           Aivolution<span className="text-red-600">Music</span>
         </Link>
 
