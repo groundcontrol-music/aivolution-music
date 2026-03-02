@@ -153,6 +153,8 @@ export default function CreatorProfileClient({
       await tryUpdateBannerOnProfile(publicData.publicUrl)
       setBannerPreview(publicData.publicUrl)
       alert('Banner gespeichert.')
+      // Nach erfolgreichem Upload zur Startseite weiterleiten
+      window.location.href = '/'
     } catch (error: any) {
       alert(`Banner-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
@@ -246,7 +248,8 @@ export default function CreatorProfileClient({
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Speichern fehlgeschlagen')
       alert('Creator-Impressum gespeichert.')
-      setShowImpressumEditor(false)
+      // Nach dem Speichern den Creator neu laden, um das neue Impressum-Bild zu sehen
+      window.location.reload()
     } catch (error: any) {
       alert(`Creator-Impressum fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
@@ -655,9 +658,27 @@ export default function CreatorProfileClient({
                       disabled={savingImpressum}
                     >
                       {savingImpressum ? <Loader2 size={14} className="animate-spin" /> : null}
-                      Bild erzeugen &amp; speichern
+                      Bild erzeugen & speichern
                     </button>
                   </div>
+                  {/* Impressum-Bild-Anzeige */}
+                  {creator?.impressum_image_url && (
+                    <div className="mt-6">
+                      <h4 className="text-md font-black uppercase mb-2">Erstelltes Impressum-Bild</h4>
+                      <div className="relative border-2 border-black rounded-[1.5rem] overflow-hidden">
+                        <img 
+                          src={creator.impressum_image_url} 
+                          alt="Erstelltes Impressum" 
+                          className="w-full h-auto object-contain"
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <span className="text-white text-sm font-bold bg-black/50 px-2 py-1 rounded">
+                            Geschützt gegen automatisches Auslesen
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

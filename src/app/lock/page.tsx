@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
+import FooterWithModal from '@/components/footer/FooterWithModal'
 
 const SNAKE_LABEL = 'AIVOLUTION MUSIC'
 const GRID_SIZE = 20
@@ -178,6 +179,8 @@ export default function LockPage() {
     })
     setBypassLoading(false)
     if (res.ok) {
+      // Nach erfolgreichem Bypass zur Startseite weiterleiten
+      // Dies ermöglicht es Admins, Testprofile zu erstellen
       window.location.href = '/'
       return
     }
@@ -390,12 +393,9 @@ export default function LockPage() {
         >
           Sperre wieder aktivieren (Cookie löschen)
         </Link>
-        <Link
-          href="/impressum"
-          className="text-[11px] font-bold uppercase tracking-wider text-white/50 hover:text-red-500 transition-colors underline underline-offset-4"
-        >
-          Impressum
-        </Link>
+        <footer className="pt-2 border-t border-white/20 w-full max-w-xs">
+          <FooterWithModal variant="lock" />
+        </footer>
       </div>
     </div>
   )

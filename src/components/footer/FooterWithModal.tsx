@@ -6,7 +6,7 @@ import { X } from 'lucide-react'
 type Key = 'impressum' | 'agb' | 'datenschutz' | 'hilfe'
 
 type Props = {
-  variant: 'home' | 'creator'
+  variant: 'home' | 'creator' | 'lock'
   creatorImpressumLink?: string
   creatorImpressumLabel?: string
 }
@@ -40,13 +40,14 @@ export default function FooterWithModal({ variant, creatorImpressumLink, creator
     }
   }, [])
 
-  const linkClass = 'hover:text-black transition-colors cursor-pointer'
-  const sep = <span className="text-zinc-300">·</span>
+  const isLock = variant === 'lock'
+  const linkClass = isLock ? 'text-white/50 hover:text-red-500 transition-colors cursor-pointer' : 'hover:text-black transition-colors cursor-pointer'
+  const sep = <span className={isLock ? 'text-white/30' : 'text-zinc-300'}>·</span>
 
   return (
     <>
-      <footer className={variant === 'home' ? 'col-span-12 pt-6 pb-4 px-4 md:px-6 border-t border-zinc-200 mt-6' : 'px-4 md:px-6 pb-6 text-center'}>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] md:text-xs font-bold uppercase tracking-wider text-zinc-500">
+      <footer className={variant === 'home' ? 'col-span-12 pt-6 pb-4 px-4 md:px-6 border-t border-zinc-200 mt-6' : variant === 'lock' ? 'pt-2 pb-2 text-center' : 'px-4 md:px-6 pb-6 text-center'}>
+        <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] md:text-xs font-bold uppercase tracking-wider ${isLock ? 'text-white/50' : 'text-zinc-500'}`}>
           {variant === 'creator' && creatorImpressumLink && (
             <>
               <a href={creatorImpressumLink} className="underline underline-offset-4 hover:text-red-600">
