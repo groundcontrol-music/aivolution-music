@@ -151,78 +151,103 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-        
-        {/* LINKER BEREICH: MUSIK & CONTENT (3 Spalten) */}
-        <div className="lg:col-span-3 space-y-12">
-          
-          {/* SEKTION: CREATOR TOP TEN */}
-          <section>
-            <h2 className="mb-6 font-mono text-xs font-bold uppercase tracking-widest text-slate-400">
+      <main className="space-y-14">
+        {/* OBERE KACHELN (MEDIA) */}
+        <section>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {mediaSlots.slice(0, 4).map((slot) => (
+              <HomepageMediaCard key={slot.id} slot={slot} />
+            ))}
+          </div>
+        </section>
+
+        {/* TOP TEN CREATOR TRACKS + AIVO */}
+        <section>
+          <div className="flex flex-col gap-2 mb-6">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-slate-400">
               // CREATOR TOP TEN TRACKS — KURATIERT VON AIVOLUTION
             </h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
-              {mediaSlots.slice(0, 4).map((slot) => (
-                <HomepageMediaCard key={slot.id} slot={slot} />
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              Klick auf Track führt zum Creator Store
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_3fr]">
+            <AivoExplanerBox aivoSkinId={activeEvent?.aivo_skin_id || 'default'} />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+              {(topTen ?? []).slice(0, 10).map((song) => (
+                <Link
+                  key={song.id}
+                  href={song.creator?.artist_name_slug ? `/creator/${song.creator.artist_name_slug}#song-${song.id}` : '#'}
+                  className="group relative aspect-square rounded-[2.5rem] border-2 border-black bg-white/80 backdrop-blur-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] transition-all"
+                >
+                  {song.cover_url ? (
+                    <img src={song.cover_url} alt={song.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-4xl font-black text-zinc-300">🎵</div>
+                  )}
+                  <div className="absolute inset-0 flex flex-col justify-end p-2 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
+                    <div className="mb-2 h-10 w-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                      ▶
+                    </div>
+                    <p className="text-[10px] font-black uppercase leading-tight text-white line-clamp-1">{song.title}</p>
+                    <p className="text-[9px] font-bold text-white/80 line-clamp-1">{song.creator?.artist_name ?? '–'}</p>
+                  </div>
+                </Link>
               ))}
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* SEKTION: AIVO & SHOP GRID */}
-          <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-             {/* AIVO VIDEO KACHEL */}
-             <AivoExplanerBox aivoSkinId={activeEvent?.aivo_skin_id || 'default'} />
+        {/* CREATOR STORE */}
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* CREATOR SHOP PREVIEW (Genre Zeilen) */}
+          <div className="md:col-span-4 space-y-8">
+            {genreSongs.length > 0 ? (
+              genreSongs.map(({ genre, songs }) => (
+                <div key={genre} className="flex flex-col gap-3">
+                  <h3 className="font-black italic text-xl uppercase tracking-tighter">{genre}</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {songs.map((song) => (
+                      <Link
+                        key={song.id}
+                        href={song.creator?.artist_name_slug ? `/creator/${song.creator.artist_name_slug}#song-${song.id}` : '#'}
+                        className="min-w-[90px] h-24 bg-white/80 backdrop-blur-xl border border-slate-200 rounded-[2rem] hover:border-red-500 transition-colors cursor-pointer relative overflow-hidden p-1 group"
+                      >
+                        <div className="h-full w-full rounded-[1.5rem] overflow-hidden relative">
+                          {song.cover_url ? (
+                            <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xl font-black text-slate-300">🎵</div>
+                          )}
+                          <div className="absolute inset-0 flex flex-col justify-end p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                            <div className="h-8 w-8 bg-red-600 rounded-full flex items-center justify-center shadow-lg text-white mx-auto mb-1">▶</div>
+                            <p className="text-[7px] font-black uppercase leading-tight line-clamp-1 text-white">{song.title}</p>
+                            <p className="text-[6px] text-white/80 font-bold">{song.creator?.artist_name ?? '–'}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                    <button className="min-w-[90px] h-24 bg-slate-100 rounded-[2rem] font-mono text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all">
+                      [Mehr]
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="col-span-full text-sm text-slate-500 font-bold uppercase">Noch keine Genre-Songs.</p>
+            )}
+          </div>
+        </section>
 
-             {/* CREATOR SHOP PREVIEW (Genre Zeilen) */}
-             <div className="md:col-span-3 space-y-8">
-                {genreSongs.length > 0 ? (
-                  genreSongs.map(({ genre, songs }) => (
-                    <div key={genre} className="flex flex-col gap-3">
-                      <h3 className="font-black italic text-xl uppercase tracking-tighter">{genre}</h3>
-                      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                        {songs.map((song) => (
-                          <Link
-                            key={song.id}
-                            href={song.creator?.artist_name_slug ? `/creator/${song.creator.artist_name_slug}#song-${song.id}` : '#'}
-                            className="min-w-[80px] h-20 bg-white border border-slate-100 rounded-2xl hover:border-red-500 transition-colors cursor-pointer relative overflow-hidden p-1 group"
-                          >
-                            <div className="h-full w-full rounded-xl overflow-hidden relative">
-                              {song.cover_url ? (
-                                <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-xl font-black text-slate-300">🎵</div>
-                              )}
-                              <div className="absolute inset-0 flex flex-col justify-end p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                                 <div className="h-8 w-8 bg-red-600 rounded-full flex items-center justify-center shadow-lg text-white mx-auto mb-1">▶</div>
-                                 <p className="text-[7px] font-black uppercase leading-tight line-clamp-1 text-white">{song.title}</p>
-                                 <p className="text-[6px] text-white/80 font-bold">{song.creator?.artist_name ?? '–'}</p>
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                        <button className="min-w-[80px] h-20 bg-slate-100 rounded-2xl font-mono text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all">
-                          [Mehr]
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="col-span-full text-sm text-slate-500 font-bold uppercase">Noch keine Genre-Songs.</p>
-                )}
-             </div>
-          </section>
-        </div>
-
-        {/* RECHTER BEREICH: WERBUNG (1 Spalte) */}
-        <aside className="space-y-6">
+        {/* WERBEFLAECHEN UNTEN */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-[2.5rem] bg-slate-100 border-2 border-dashed border-slate-200 h-64 flex items-center justify-center text-slate-400 font-mono text-xs uppercase tracking-widest">
             Ad_Space_01
           </div>
-          <div className="rounded-[2.5rem] bg-red-50 border border-red-100 h-96 flex items-center justify-center text-red-300 font-mono text-xs uppercase tracking-widest">
+          <div className="rounded-[2.5rem] bg-red-50 border border-red-100 h-64 flex items-center justify-center text-red-300 font-mono text-xs uppercase tracking-widest">
             Partner_Tool_Showcase
           </div>
-        </aside>
-
+        </section>
       </main>
 
       <footer className="mt-20 border-t border-slate-200 py-10 text-center">
