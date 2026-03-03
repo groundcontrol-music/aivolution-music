@@ -151,10 +151,10 @@ export default function CreatorProfileClient({
       if (uploadError) throw uploadError
       const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(filePath)
       await tryUpdateBannerOnProfile(publicData.publicUrl)
-      setBannerPreview(publicData.publicUrl)
+      // setBannerPreview(publicData.publicUrl) // Kein sofortiges Preview-Update, da Umleitung erfolgt
       alert('Banner gespeichert.')
-      // Nach erfolgreichem Upload zur Startseite weiterleiten
-      window.location.href = '/'
+      // Nach erfolgreichem Upload zur Creator-Seite weiterleiten
+      window.location.href = `/creator/${creatorSlug}`
     } catch (error: any) {
       alert(`Banner-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
@@ -310,12 +310,18 @@ export default function CreatorProfileClient({
               className="bg-white border-b-2 border-black relative overflow-visible rounded-t-[2.3rem] rounded-b-[2.5rem] cursor-pointer group"
               onClick={() => bannerImageUrl && setSelectedImage(bannerImageUrl)}
             >
-              {bannerImageUrl && (
-                <img
-                  src={bannerImageUrl}
-                  alt={`${creator.artist_name} Banner`}
-                  className="absolute inset-0 w-full h-full object-cover rounded-t-[2.3rem] rounded-b-[2.5rem]"
-                />
+              {uploadingBanner ? (
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-zinc-100 rounded-t-[2.3rem] rounded-b-[2.5rem]">
+                  <Loader2 size={32} className="animate-spin text-red-600" />
+                </div>
+              ) : (
+                bannerImageUrl && (
+                  <img
+                    src={bannerImageUrl}
+                    alt={`${creator.artist_name} Banner`}
+                    className="absolute inset-0 w-full h-full object-cover rounded-t-[2.3rem] rounded-b-[2.5rem]"
+                  />
+                )
               )}
               <div className="px-4 md:px-6 py-4 md:py-5 relative z-10">
                 <div className="flex flex-col md:flex-row gap-5 items-start">
