@@ -26,22 +26,26 @@ export default function SubscriptionPlansClient() {
   const [plans, setPlans] = useState<PlanRow[]>(buildDefaultPlans())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [messagePlanId, setMessagePlanId] = useState<string>('')
+  const [messagePlanNumber, setMessagePlanNumber] = useState<string>('')
+  const [messageTarget, setMessageTarget] = useState<'plan' | 'all'>('plan')
   const [messageSubject, setMessageSubject] = useState('')
   const [messageContent, setMessageContent] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
 
-  const planOptions = useMemo(() => plans.filter((p) => p.id), [plans])
+  const planOptions = useMemo(() => plans, [plans])
 
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         setLoading(true)
+        setLoadError(null)
         const { data, error } = await supabase
           .from('subscription_plans')
           .select('*')
           .order('plan_number', { ascending: true })
-        if (error) throw error
+        if (error) throw new Error(error.message || 'Unbekannter Fehler')
         if (data && data.length > 0) {
           const normalized = buildDefaultPlans().map((fallback) => {
             const match = data.find((row: any) => row.plan_number === fallback.plan_number)
@@ -58,8 +62,10 @@ export default function SubscriptionPlansClient() {
           })
           setPlans(normalized)
         }
-      } catch (error) {
-        console.error('Plans laden fehlgeschlagen:', error)
+      } catch (error: any) {
+        const message = error?.message || 'Unbekannter Fehler'
+        console.error('Plans laden fehlgeschlagen:', message)
+        setLoadError(message)
       } finally {
         setLoading(false)
       }
@@ -114,7 +120,7 @@ export default function SubscriptionPlansClient() {
   }
 
   const handleSendMessage = async () => {
-    if (!messagePlanId) {
+    if (messageTarget === 'plan' && !messagePlanId && !messagePlanNumber) {
       alert('Bitte ein Abo-Modell auswählen.')
       return
     }
@@ -128,7 +134,9 @@ export default function SubscriptionPlansClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: messagePlanId,
+          planId: messagePlanId || null,
+          planNumber: messagePlanNumber ? Number(messagePlanNumber) : null,
+          target: messageTarget,
           subject: messageSubject.trim(),
           content: messageContent.trim(),
         }),
@@ -174,6 +182,15 @@ export default function SubscriptionPlansClient() {
 
         {loading ? (
           <p className="text-xs font-mono text-zinc-500">Lade Modelle...</p>
+        ) : loadError ? (
+          <div className="border-2 border-red-600 bg-red-50 rounded-2xl p-4">
+            <p className="text-xs font-mono text-red-700">
+              Plans laden fehlgeschlagen: {loadError}
+            </p>
+            <p className="text-[11px] font-mono text-red-600 mt-2">
+              Hinweis: Stelle sicher, dass `supabase_subscription_plans.sql` ausgeführt wurde.
+            </p>
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {plans.map((plan, index) => (
@@ -221,18 +238,44 @@ export default function SubscriptionPlansClient() {
       <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
         <h2 className="text-xl font-black uppercase tracking-tight mb-4">Nachricht an Abo‑Gruppe</h2>
         <div className="grid gap-3">
-          <select
-            value={messagePlanId}
-            onChange={(e) => setMessagePlanId(e.target.value)}
-            className="border-2 border-black rounded-full px-4 py-2 text-xs font-bold uppercase"
-          >
-            <option value="">Abo-Modell auswählen</option>
-            {planOptions.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.name || `Modell ${plan.plan_number}`}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setMessageTarget('plan')}
+              className={`px-4 py-2 text-xs font-bold uppercase border-2 rounded-full ${
+                messageTarget === 'plan' ? 'bg-black text-white border-black' : 'border-black bg-white'
+              }`}
+            >
+              Nur Abo‑Modell
+            </button>
+            <button
+              type="button"
+              onClick={() => setMessageTarget('all')}
+              className={`px-4 py-2 text-xs font-bold uppercase border-2 rounded-full ${
+                messageTarget === 'all' ? 'bg-black text-white border-black' : 'border-black bg-white'
+              }`}
+            >
+              Alle Creator
+            </button>
+          </div>
+          {messageTarget === 'plan' && (
+            <select
+              value={messagePlanId || messagePlanNumber}
+              onChange={(e) => {
+                const value = e.target.value
+                setMessagePlanId(value.startsWith('id:') ? value.replace('id:', '') : '')
+                setMessagePlanNumber(value.startsWith('num:') ? value.replace('num:', '') : '')
+              }}
+              className="border-2 border-black rounded-full px-4 py-2 text-xs font-bold uppercase"
+            >
+              <option value="">Abo-Modell auswählen</option>
+              {planOptions.map((plan) => (
+                <option key={plan.plan_number} value={plan.id ? `id:${plan.id}` : `num:${plan.plan_number}`}>
+                  {plan.name || `Modell ${plan.plan_number}`}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             value={messageSubject}
             onChange={(e) => setMessageSubject(e.target.value)}

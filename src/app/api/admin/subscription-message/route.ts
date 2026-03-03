@@ -15,18 +15,37 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const target = String(body?.target || 'plan')
     const planId = String(body?.planId || '')
+    const planNumber = Number(body?.planNumber || 0)
     const subject = String(body?.subject || '').trim()
     const content = String(body?.content || '').trim()
 
-    if (!planId || !subject || !content) {
+    if ((!planId && !planNumber && target === 'plan') || !subject || !content) {
       return NextResponse.json({ error: 'Plan, Betreff und Inhalt sind Pflicht.' }, { status: 400 })
     }
 
-    const { data: recipients, error: recipientsError } = await supabase
+    let recipientsQuery = supabase
       .from('profiles')
       .select('id')
-      .eq('subscription_plan_id', planId)
+
+    if (target === 'all') {
+      recipientsQuery = recipientsQuery.eq('role', 'creator')
+    } else if (planId) {
+      recipientsQuery = recipientsQuery.eq('subscription_plan_id', planId)
+    } else if (planNumber) {
+      const { data: planRow, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id')
+        .eq('plan_number', planNumber)
+        .single()
+      if (planError || !planRow?.id) {
+        return NextResponse.json({ error: 'Abo-Modell nicht gefunden.' }, { status: 404 })
+      }
+      recipientsQuery = recipientsQuery.eq('subscription_plan_id', planRow.id)
+    }
+
+    const { data: recipients, error: recipientsError } = await recipientsQuery
 
     if (recipientsError) throw recipientsError
 
