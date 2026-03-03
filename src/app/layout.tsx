@@ -63,12 +63,12 @@ function EventBackgroundWrapper({ activeEvent, children }: { activeEvent: Platfo
   );
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
+  const headersList = await headers();
   const activeEventHeader = headersList.get('x-active-event');
   const activeEvent: PlatformEvent | null = activeEventHeader ? JSON.parse(activeEventHeader) : null;
 
