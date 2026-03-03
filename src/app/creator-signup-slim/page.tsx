@@ -26,6 +26,8 @@ export default function CreatorSignupSlimPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'legal' | 'upload'>('legal')
+  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [uploadSummary, setUploadSummary] = useState('')
 
   const [legalChecks, setLegalChecks] = useState<Record<string, boolean>>({})
   const [email, setEmail] = useState('')
@@ -216,8 +218,17 @@ export default function CreatorSignupSlimPage() {
         console.warn('Upload-Checks nicht erreichbar:', reviewError)
       }
 
-      // Erfolg
-      router.push('/?signup=success')
+      // Erfolg: kurze Bestätigung, dann ausloggen und zur Startseite
+      const summary = `Upload erfolgreich. Songs: ${song2 ? '2' : '1'}. Wir melden uns nach der Prüfung.`
+      setUploadSummary(summary)
+      setUploadSuccess(true)
+      setTimeout(async () => {
+        try {
+          await supabase.auth.signOut()
+        } finally {
+          router.push('/?signup=success')
+        }
+      }, 1800)
       
     } catch (error: any) {
       // Cleanup: keine Datenleichen bei Teilfehlern
@@ -374,6 +385,13 @@ export default function CreatorSignupSlimPage() {
         </div>
 
         <div className="space-y-6 relative z-10">
+          {uploadSuccess && (
+            <div className="bg-white/90 border border-slate-200 rounded-[2rem] p-6 text-center shadow-[0_0_24px_rgba(255,0,0,0.08)]">
+              <p className="text-sm font-black uppercase tracking-widest text-red-600 mb-2">Upload bestätigt</p>
+              <p className="text-sm font-medium">{uploadSummary}</p>
+              <p className="text-[11px] font-mono text-slate-500 mt-3">Du wirst zur Startseite weitergeleitet.</p>
+            </div>
+          )}
           
           <p className="text-sm bg-white/80 border border-slate-200 p-4 rounded-2xl font-medium">
             Lade hier <strong>mindestens 1 Song</strong> (maximal 2) hoch. 
@@ -433,7 +451,7 @@ export default function CreatorSignupSlimPage() {
 
           <button
             onClick={handleSongUpload}
-            disabled={loading || !song1}
+            disabled={loading || !song1 || uploadSuccess}
             className="w-full bg-red-600 text-white py-5 rounded-full font-black uppercase tracking-widest hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 text-lg"
           >
             {loading ? <Loader2 className="animate-spin" size={24} /> : <>Bewerbung absenden 🚀</>}
