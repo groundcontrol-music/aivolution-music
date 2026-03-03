@@ -95,6 +95,21 @@ export default function CreatorProfileClient({
     })
   }, [shopSongs, shopSearch, shopTypeFilter])
 
+  const storageStats = useMemo(() => {
+    const totalGb = 50
+    const wavGb = 18.5
+    const mp3Gb = 6.5
+    const usedGb = Math.min(totalGb, wavGb + mp3Gb)
+    const usedPercent = totalGb > 0 ? Math.round((usedGb / totalGb) * 100) : 0
+    return { totalGb, wavGb, mp3Gb, usedGb, usedPercent }
+  }, [])
+
+  const topSales = useMemo(() => {
+    return [...shopSongs]
+      .sort((a: any, b: any) => (Number(b.download_count) || 0) - (Number(a.download_count) || 0))
+      .slice(0, 3)
+  }, [shopSongs])
+
   const readImageDimensions = (file: File) =>
     new Promise<{ width: number; height: number }>((resolve, reject) => {
       const img = new Image()
@@ -469,99 +484,195 @@ export default function CreatorProfileClient({
               </div>
             </div>
 
-            {/* VIDEO BOXES (2) */}
+            {/* VIDEO BOXES (2), BIO + COMMAND CENTER (rechts) */}
             <div className="px-4 md:px-6 py-4 md:py-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                {videoSlotKeys.map(({ key, label }) => {
-                  const videoUrl = socialState[key] || ''
-                  const ytEmbed = getYouTubeEmbed(videoUrl)
-                  const ttEmbed = getTikTokEmbed(videoUrl)
-                  return (
-                    <div key={key} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[175px]">
-                      <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
-                        {label}
-                      </div>
-                      {isCreatorOwner && (
-                        <button
-                          onClick={() => handleEditVideoSlot(key)}
-                          className="absolute top-4 right-4 z-30 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      <div className="absolute inset-0">
-                        {videoUrl ? (
-                          ytEmbed ? (
-                            <iframe
-                              src={ytEmbed}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                          ) : ttEmbed ? (
-                            <iframe src={ttEmbed} className="w-full h-full" allow="encrypted-media;" allowFullScreen />
-                          ) : (
-                            <button
-                              onClick={() => setSelectedVideo(videoUrl)}
-                              className="w-full h-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center"
-                            >
-                              <span className="text-sm font-black uppercase">{getVideoTypeLabel(videoUrl)} öffnen</span>
-                              <ExternalLink size={16} className="ml-2" />
-                            </button>
-                          )
-                        ) : (
-                          <div className="w-full h-full border-2 border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-500 bg-zinc-50">
-                            Keine URL hinterlegt
+              <div className={`grid gap-6 ${isCreatorOwner ? 'lg:grid-cols-[1fr_380px]' : ''}`}>
+                <div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {videoSlotKeys.map(({ key, label }) => {
+                      const videoUrl = socialState[key] || ''
+                      const ytEmbed = getYouTubeEmbed(videoUrl)
+                      const ttEmbed = getTikTokEmbed(videoUrl)
+                      return (
+                        <div key={key} className="relative bg-white border-2 border-black rounded-[2.5rem] overflow-hidden h-[175px]">
+                          <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
+                            {label}
                           </div>
+                          {isCreatorOwner && (
+                            <button
+                              onClick={() => handleEditVideoSlot(key)}
+                              className="absolute top-4 right-4 z-30 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          <div className="absolute inset-0">
+                            {videoUrl ? (
+                              ytEmbed ? (
+                                <iframe
+                                  src={ytEmbed}
+                                  className="w-full h-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              ) : ttEmbed ? (
+                                <iframe src={ttEmbed} className="w-full h-full" allow="encrypted-media;" allowFullScreen />
+                              ) : (
+                                <button
+                                  onClick={() => setSelectedVideo(videoUrl)}
+                                  className="w-full h-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center"
+                                >
+                                  <span className="text-sm font-black uppercase">{getVideoTypeLabel(videoUrl)} öffnen</span>
+                                  <ExternalLink size={16} className="ml-2" />
+                                </button>
+                              )
+                            ) : (
+                              <div className="w-full h-full border-2 border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-500 bg-zinc-50">
+                                Keine URL hinterlegt
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* BIO – volle Breite, zentriert; Creator Impressum mittig unten im Bio-Feld */}
+                  <div className="mt-6 relative">
+                    <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
+                      BIO
+                    </div>
+                    <div className="bg-white border-2 border-black rounded-[2.5rem] p-4 md:p-6 min-h-[120px]">
+                      {isCreatorOwner ? (
+                        <>
+                          <textarea
+                            value={bioDraft}
+                            onChange={(e) => setBioDraft(e.target.value)}
+                            placeholder="Deine Bio..."
+                            className="w-full min-h-[100px] bg-transparent p-0 text-sm leading-relaxed resize-y focus:outline-none border-0 text-center md:text-center"
+                          />
+                          <div className="flex justify-center mt-3">
+                            <button
+                              onClick={handleSaveBio}
+                              disabled={savingBio}
+                              className="text-[10px] px-3 py-1 border border-black rounded-full hover:bg-black hover:text-white transition-colors"
+                            >
+                              {savingBio ? '...' : 'Speichern'}
+                            </button>
+                          </div>
+                          <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
+                            <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
+                              Creator Impressum
+                            </a>
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm leading-relaxed text-gray-800 text-center whitespace-pre-line">
+                            {bioDraft || 'Keine Bio vorhanden.'}
+                          </p>
+                          <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
+                            <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
+                              Creator Impressum
+                            </a>
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {isCreatorOwner && (
+                  <aside className="space-y-6 lg:sticky lg:top-6 self-start">
+                    <div className="relative bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="font-black italic uppercase tracking-tighter text-xl">
+                          Storage_Core <span className="text-red-600">v1.0</span>
+                        </h2>
+                        <span className="text-[10px] font-mono uppercase text-slate-400">Demo</span>
+                      </div>
+
+                      <div className="relative flex justify-center items-center mb-8">
+                        <div
+                          className="relative w-44 h-44 md:w-48 md:h-48 rounded-full"
+                          style={{
+                            background: `conic-gradient(#dc2626 0 ${storageStats.usedPercent}%, #e2e8f0 ${storageStats.usedPercent}% ${Math.min(storageStats.usedPercent + 18, 100)}%, #111827 ${Math.min(storageStats.usedPercent + 18, 100)}% 100%)`,
+                          }}
+                        >
+                          <div className="absolute inset-4 rounded-full bg-white/90 backdrop-blur-md border border-slate-100 flex flex-col items-center justify-center text-center">
+                            <p className="text-[10px] font-mono uppercase text-slate-400">Belegt</p>
+                            <p className="text-2xl font-black italic">{storageStats.usedGb}GB / {storageStats.totalGb}GB</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 font-mono text-xs mb-8">
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2">
+                            <span className="w-3 h-3 bg-red-600 rounded-full" /> WAV Assets
+                          </span>
+                          <span className="font-bold text-slate-900">{storageStats.wavGb} GB</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2">
+                            <span className="w-3 h-3 bg-slate-200 rounded-full" /> MP3 Distribution
+                          </span>
+                          <span className="font-bold text-slate-900">{storageStats.mp3Gb} GB</span>
+                        </div>
+                      </div>
+
+                      <hr className="border-slate-100 mb-8" />
+
+                      <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+                        // Top_Sales_Stats
+                      </h3>
+
+                      <ul className="space-y-6">
+                        {topSales.length === 0 ? (
+                          <li className="text-xs font-mono text-slate-500">Noch keine Sales.</li>
+                        ) : (
+                          topSales.map((song: any, index: number) => {
+                            const count = Number(song.download_count) || 0
+                            const maxCount = Math.max(1, ...topSales.map((s: any) => Number(s.download_count) || 0))
+                            const width = Math.round((count / maxCount) * 100)
+                            return (
+                              <li key={song.id} className="group">
+                                <div className="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter">
+                                  <span>{index + 1}. {song.title || 'Unbekannt'}</span>
+                                  <span className="text-red-600">{count}x</span>
+                                </div>
+                                <div className="w-full bg-slate-50 h-1 rounded-full overflow-hidden">
+                                  <div className="bg-red-600 h-full transition-all" style={{ width: `${width}%` }} />
+                                </div>
+                              </li>
+                            )
+                          })
                         )}
+                      </ul>
+                    </div>
+
+                    <div className="bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                      <h3 className="font-black italic uppercase tracking-tighter text-lg mb-6">
+                        Creator_Command <span className="text-red-600">Upload</span>
+                      </h3>
+                      <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 p-6 md:p-8 text-center">
+                        <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-4">
+                          // Upload_Field
+                        </p>
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full min-h-[56px] rounded-full border border-slate-200 bg-slate-100/80 text-sm font-bold uppercase tracking-wider text-slate-500"
+                        >
+                          Upload MP3/WAV (Coming Soon)
+                        </button>
+                        <p className="mt-4 text-[11px] text-slate-500">
+                          Optimiert für Mobile-Uploads – Button bleibt groß genug.
+                        </p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-
-              {/* BIO – volle Breite, zentriert; Creator Impressum mittig unten im Bio-Feld */}
-              <div className="mt-6 relative">
-                <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
-                  BIO
-                </div>
-                <div className="bg-white border-2 border-black rounded-[2.5rem] p-4 md:p-6 min-h-[120px]">
-                  {isCreatorOwner ? (
-                    <>
-                      <textarea
-                        value={bioDraft}
-                        onChange={(e) => setBioDraft(e.target.value)}
-                        placeholder="Deine Bio..."
-                        className="w-full min-h-[100px] bg-transparent p-0 text-sm leading-relaxed resize-y focus:outline-none border-0 text-center md:text-center"
-                      />
-                      <div className="flex justify-center mt-3">
-                        <button
-                          onClick={handleSaveBio}
-                          disabled={savingBio}
-                          className="text-[10px] px-3 py-1 border border-black rounded-full hover:bg-black hover:text-white transition-colors"
-                        >
-                          {savingBio ? '...' : 'Speichern'}
-                        </button>
-                      </div>
-                      <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
-                        <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
-                          Creator Impressum
-                        </a>
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm leading-relaxed text-gray-800 text-center whitespace-pre-line">
-                        {bioDraft || 'Keine Bio vorhanden.'}
-                      </p>
-                      <p className="mt-4 pt-3 border-t border-zinc-200 text-center">
-                        <a href={creatorImpressumLink} className="text-xs font-bold uppercase text-red-600 hover:underline">
-                          Creator Impressum
-                        </a>
-                      </p>
-                    </>
-                  )}
-                </div>
+                  </aside>
+                )}
               </div>
             </div>
 

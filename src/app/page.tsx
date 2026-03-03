@@ -212,10 +212,18 @@ export default async function HomePage({
         <section>
           <div className="flex flex-col gap-2 mb-6">
             <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-slate-400">
-              // CREATOR TOP TEN TRACKS — KURATIERT VON AIVOLUTION
+              {trackFilter === 'newest'
+                ? '// NEUESTE CREATOR TRACKS — KURATIERT VON AIVOLUTION'
+                : trackFilter === 'most_listened'
+                  ? '// AM MEISTEN GEHOERT — KURATIERT VON AIVOLUTION'
+                  : '// CREATOR TOP TEN TRACKS — KURATIERT VON AIVOLUTION'}
             </h2>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-              Klick auf Track führt zum Creator Store
+              {trackFilter === 'newest'
+                ? 'Neueste Veroeffentlichungen'
+                : trackFilter === 'most_listened'
+                  ? 'Meistgehoerte Tracks (Fallback: Kaeufe)'
+                  : 'Klick auf Track fuehrt zum Creator Store'}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_3fr]">
