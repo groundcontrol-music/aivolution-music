@@ -1,10 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { Youtube, Music2, Play } from 'lucide-react';
-import VideoLightbox from '@/components/VideoLightbox';
+import { Youtube, Music2, Play, ImageIcon } from 'lucide-react';
 
 interface PromoSlot {
   id?: string;
@@ -23,14 +20,15 @@ interface HomepageMediaCardProps {
 }
 
 export default function HomepageMediaCard({ slot }: HomepageMediaCardProps) {
-  const [showVideoLightbox, setShowVideoLightbox] = useState(false);
-
   const isVideo = slot.media_type === 'youtube' || slot.media_type === 'tiktok';
   const videoId = slot.youtube_id || slot.tiktok_id;
 
   const handlePlayClick = () => {
     if (isVideo && videoId) {
-      setShowVideoLightbox(true);
+      const videoUrl = slot.media_type === 'tiktok'
+        ? `https://www.tiktok.com/@tiktok/video/${videoId}`
+        : `https://www.youtube.com/watch?v=${videoId}`;
+      window.open(videoUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -49,8 +47,9 @@ export default function HomepageMediaCard({ slot }: HomepageMediaCardProps) {
         <Image
           src={slot.media_url}
           alt={slot.title}
-          layout="fill"
-          objectFit="cover"
+          fill
+          sizes="(max-width: 768px) 100vw, 25vw"
+          style={{ objectFit: 'cover' }}
           className="rounded-[2rem]"
         />
       )}
@@ -88,13 +87,6 @@ export default function HomepageMediaCard({ slot }: HomepageMediaCardProps) {
         </div>
       </div>
 
-      {isVideo && videoId && (
-        <VideoLightbox
-          isOpen={showVideoLightbox}
-          onClose={() => setShowVideoLightbox(false)}
-          videoId={slot.youtube_id || slot.tiktok_id || ''}
-        />
-      )}
     </div>
   );
 }
