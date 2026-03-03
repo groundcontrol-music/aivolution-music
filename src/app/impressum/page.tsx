@@ -34,9 +34,9 @@ export default async function ImpressumPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-black">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-10 shadow-[8px_8px_0px_0px_rgba(220,38,38,1)]">
+    <div className="text-black">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-[2.5rem] p-6 md:p-10 shadow-[0_10px_40px_rgba(15,23,42,0.08)]">
           <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-6">
             <span className="text-red-600">{title}</span>
           </h1>
