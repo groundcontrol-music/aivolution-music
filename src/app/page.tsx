@@ -1,12 +1,17 @@
-import React, { useMemo } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import CompactSongCard from '@/components/creator/CompactSongCard'
 import FooterWithModal from '@/components/footer/FooterWithModal'
 
 // Hauptseite: Aivolution Startseite
 export default async function HomePage() {
-  const supabase = createClient()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase ENV fehlt: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY')
+  }
+  const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
+
 
   // Top Ten (nach Verkäufen → download_count)
   const { data: topTenRows } = await supabase
@@ -30,7 +35,27 @@ export default async function HomePage() {
     .in('id', creatorIds)
   const creatorMap = new Map((creatorProfiles ?? []).map((p) => [p.id, p]))
 
-  const topTen = (topTenRows ?? []).map((s) => ({
+  type CreatorInfo = {
+    id: string
+    artist_name: string
+    artist_name_slug: string
+  }
+  type ShopSong = {
+    id: string
+    title: string
+    price: number | string | null
+    cover_url?: string | null
+    file_url?: string | null
+    mp3_preview_url?: string | null
+    wav_url?: string | null
+    download_count?: number | null
+    release_type?: string | null
+    genres?: string[] | null
+    user_id?: string | null
+    creator?: CreatorInfo
+  }
+
+  const topTen: ShopSong[] = (topTenRows ?? []).map((s) => ({
     ...s,
     creator: creatorMap.get(s.user_id),
   }))
@@ -49,7 +74,7 @@ export default async function HomePage() {
     .map(([name]) => name)
 
   // Pro Genre bis zu 5 Songs (gleiche Kachelgröße, max 5 nebeneinander)
-  const genreSongs: { genre: string; songs: typeof topTen }[] = []
+  const genreSongs: { genre: string; songs: ShopSong[] }[] = []
   for (const genreName of topGenreNames) {
     const inGenre = (allSongsForGenres ?? []).filter(
       (s) => Array.isArray(s.genres) && s.genres.some((g: string) => (g || '').trim() === genreName)
@@ -90,7 +115,7 @@ export default async function HomePage() {
         {/* LINKER BEREICH: MUSIK & CONTENT (3 Spalten) */}
         <div className="lg:col-span-3 space-y-12">
           
-          {/* SEKTION: CREATOR TOP TEN */}1
+          {/* SEKTION: CREATOR TOP TEN */}
           <section>
             <h2 className="mb-6 font-mono text-xs font-bold uppercase tracking-widest text-slate-400">
               // CREATOR TOP TEN TRACKS — KURATIERT VON AIVOLUTION
