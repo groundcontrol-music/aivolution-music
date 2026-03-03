@@ -12,6 +12,14 @@ type PlanRow = {
   stripe_price_id?: string | null
 }
 
+type PromoBox = {
+  slot_id: number
+  title: string
+  subtitle: string
+  media_url?: string | null
+  media_type?: 'image' | 'none'
+}
+
 const buildDefaultPlans = (): PlanRow[] =>
   Array.from({ length: 6 }).map((_, index) => ({
     plan_number: index + 1,
@@ -27,6 +35,17 @@ export default function SubscriptionPlansClient() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [promoBoxes, setPromoBoxes] = useState<PromoBox[]>(
+    Array.from({ length: 6 }).map((_, index) => ({
+      slot_id: 301 + index,
+      title: `Box ${index + 1}`,
+      subtitle: 'Aivolution',
+      media_type: 'none',
+      media_url: null,
+    }))
+  )
+  const [promoLoading, setPromoLoading] = useState(false)
+  const [promoSaving, setPromoSaving] = useState(false)
   const [messagePlanId, setMessagePlanId] = useState<string>('')
   const [messagePlanNumber, setMessagePlanNumber] = useState<string>('')
   const [messageTarget, setMessageTarget] = useState<'plan' | 'all'>('plan')
@@ -73,12 +92,96 @@ export default function SubscriptionPlansClient() {
     fetchPlans()
   }, [supabase])
 
+  useEffect(() => {
+    const fetchPromoBoxes = async () => {
+      try {
+        setPromoLoading(true)
+        const { data, error } = await supabase
+          .from('promo_slots')
+          .select('slot_id, title, subtitle, media_type, media_url')
+          .in('slot_id', [301, 302, 303, 304, 305, 306])
+          .order('slot_id', { ascending: true })
+        if (error) throw error
+        if (data && data.length > 0) {
+          const merged = promoBoxes.map((fallback) => {
+            const match = data.find((row: any) => row.slot_id === fallback.slot_id)
+            return match
+              ? {
+                  slot_id: match.slot_id,
+                  title: match.title || fallback.title,
+                  subtitle: match.subtitle || fallback.subtitle,
+                  media_type: match.media_type || 'none',
+                  media_url: match.media_url || null,
+                }
+              : fallback
+          })
+          setPromoBoxes(merged)
+        }
+      } catch (error: any) {
+        console.error('Promo-Boxen laden fehlgeschlagen:', error?.message || error)
+      } finally {
+        setPromoLoading(false)
+      }
+    }
+    fetchPromoBoxes()
+  }, [supabase])
+
   const updatePlan = (index: number, patch: Partial<PlanRow>) => {
     setPlans((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], ...patch }
       return next
     })
+  }
+
+  const updatePromoBox = (index: number, patch: Partial<PromoBox>) => {
+    setPromoBoxes((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], ...patch }
+      return next
+    })
+  }
+
+  const handlePromoImageUpload = async (index: number, file: File) => {
+    try {
+      setPromoSaving(true)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `promo_box_${promoBoxes[index].slot_id}_${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(fileName)
+      updatePromoBox(index, { media_url: publicUrl, media_type: 'image' })
+    } catch (error: any) {
+      alert(`Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setPromoSaving(false)
+    }
+  }
+
+  const handleSavePromoBoxes = async () => {
+    try {
+      setPromoSaving(true)
+      const payload = promoBoxes.map((box) => ({
+        slot_id: box.slot_id,
+        title: box.title || `Box ${box.slot_id - 300}`,
+        subtitle: box.subtitle || 'Aivolution',
+        media_type: box.media_type || 'none',
+        media_url: box.media_url || null,
+      }))
+      const { error } = await supabase
+        .from('promo_slots')
+        .upsert(payload, { onConflict: 'slot_id' })
+      if (error) throw error
+      alert('Promo-Boxen gespeichert.')
+    } catch (error: any) {
+      alert(`Speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setPromoSaving(false)
+    }
   }
 
   const handleSave = async () => {
@@ -226,6 +329,75 @@ export default function SubscriptionPlansClient() {
                     value={plan.stripe_price_id || ''}
                     onChange={(e) => updatePlan(index, { stripe_price_id: e.target.value })}
                     placeholder="Stripe Price ID (optional)"
+                    className="w-full border-2 border-black rounded-full px-4 py-2 text-xs"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight">Reusable Promo‑Boxen (1–6)</h2>
+            <p className="text-[11px] font-mono opacity-60 mt-1">
+              Hochformatig, wiederverwendbar in anderen Bereichen.
+            </p>
+          </div>
+          <button
+            onClick={handleSavePromoBoxes}
+            disabled={promoSaving}
+            className="bg-black text-white px-4 py-2 text-xs font-black uppercase rounded-full hover:bg-red-600 transition-colors"
+          >
+            {promoSaving ? 'Speichern...' : 'Speichern'}
+          </button>
+        </div>
+
+        {promoLoading ? (
+          <p className="text-xs font-mono text-zinc-500">Lade Boxen...</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            {promoBoxes.map((box, index) => (
+              <div key={box.slot_id} className="border-2 border-black rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-black uppercase">Box {index + 1}</span>
+                  <span className="text-[10px] font-mono text-zinc-500">slot_id: {box.slot_id}</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="w-full aspect-[9/16] rounded-[1.5rem] border-2 border-dashed border-zinc-300 bg-zinc-50 overflow-hidden flex items-center justify-center">
+                    {box.media_url ? (
+                      <img src={box.media_url} alt={box.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-mono text-zinc-500">JPG hochladen</span>
+                    )}
+                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handlePromoImageUpload(index, file)
+                      }}
+                      disabled={promoSaving}
+                    />
+                    <div className="w-full text-center border-2 border-black rounded-full py-2 text-[11px] font-black uppercase hover:bg-black hover:text-white transition-colors">
+                      Bild wählen
+                    </div>
+                  </label>
+                  <input
+                    value={box.title}
+                    onChange={(e) => updatePromoBox(index, { title: e.target.value })}
+                    placeholder={`Titel Box ${index + 1}`}
+                    className="w-full border-2 border-black rounded-full px-4 py-2 text-xs font-bold uppercase"
+                  />
+                  <input
+                    value={box.subtitle}
+                    onChange={(e) => updatePromoBox(index, { subtitle: e.target.value })}
+                    placeholder="Subtitel"
                     className="w-full border-2 border-black rounded-full px-4 py-2 text-xs"
                   />
                 </div>
