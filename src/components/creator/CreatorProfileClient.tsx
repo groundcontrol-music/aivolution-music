@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { ExternalLink, ImagePlus, Loader2 } from 'lucide-react'
 import CompactSongCard from './CompactSongCard'
@@ -10,6 +10,7 @@ type CreatorProfileClientProps = {
   creator: any
   songs: any[]
   isCreatorOwner: boolean
+  isAdmin: boolean
   socials: any
   socialIcons: any
 }
@@ -18,6 +19,7 @@ export default function CreatorProfileClient({
   creator,
   songs,
   isCreatorOwner,
+  isAdmin,
   socials,
   socialIcons
 }: CreatorProfileClientProps) {
@@ -39,6 +41,10 @@ export default function CreatorProfileClient({
   const [savingImpressum, setSavingImpressum] = useState(false)
   const [shopSearch, setShopSearch] = useState('')
   const [shopTypeFilter, setShopTypeFilter] = useState<'all' | 'single' | 'ep' | 'album'>('all')
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([])
+  const [activePlanId, setActivePlanId] = useState<string | null>(creator.subscription_plan_id || null)
+  const [loadingPlans, setLoadingPlans] = useState(false)
+  const [savingPlan, setSavingPlan] = useState(false)
   const [impressumForm, setImpressumForm] = useState({
     legal_name: '',
     street: '',
@@ -84,6 +90,8 @@ export default function CreatorProfileClient({
   ]
 
   const shopSongs = songs.filter((s: any) => !s.is_probe)
+  const canEditProfile = isAdmin || (isCreatorOwner && Boolean(activePlanId))
+  const activePlan = subscriptionPlans.find((plan) => plan.id === activePlanId) || null
   const filteredShopSongs = useMemo(() => {
     const query = shopSearch.trim().toLowerCase()
     return shopSongs.filter((song: any) => {
@@ -96,19 +104,23 @@ export default function CreatorProfileClient({
   }, [shopSongs, shopSearch, shopTypeFilter])
 
   const storageStats = useMemo(() => {
-    const totalGb = 50
+    const totalGb = Number(activePlan?.storage_gb) || 0
     const wavGb = 18.5
     const mp3Gb = 6.5
     const usedGb = Math.min(totalGb, wavGb + mp3Gb)
     const usedPercent = totalGb > 0 ? Math.round((usedGb / totalGb) * 100) : 0
     return { totalGb, wavGb, mp3Gb, usedGb, usedPercent }
-  }, [])
+  }, [activePlan])
 
   const topSales = useMemo(() => {
     return [...shopSongs]
       .sort((a: any, b: any) => (Number(b.download_count) || 0) - (Number(a.download_count) || 0))
       .slice(0, 3)
   }, [shopSongs])
+
+  useEffect(() => {
+    fetchSubscriptionPlans()
+  }, [])
 
   const readImageDimensions = (file: File) =>
     new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -279,6 +291,40 @@ export default function CreatorProfileClient({
     return 'Extern'
   }
 
+  const fetchSubscriptionPlans = async () => {
+    if (!isCreatorOwner && !isAdmin) return
+    try {
+      setLoadingPlans(true)
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .order('plan_number', { ascending: true })
+      if (error) throw error
+      setSubscriptionPlans(data || [])
+    } catch (error: any) {
+      console.error('Plans laden fehlgeschlagen:', error)
+    } finally {
+      setLoadingPlans(false)
+    }
+  }
+
+  const handleChoosePlan = async (planId: string) => {
+    try {
+      setSavingPlan(true)
+      const { error } = await supabase
+        .from('profiles')
+        .update({ subscription_plan_id: planId })
+        .eq('id', creator.id)
+      if (error) throw error
+      setActivePlanId(planId)
+      alert('Abo-Modell gespeichert. Zahlung folgt (Stripe).')
+    } catch (error: any) {
+      alert(`Abo speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setSavingPlan(false)
+    }
+  }
+
   const handleEditVideoSlot = async (key: string) => {
     const current = socialState[key] || ''
     const next = window.prompt(`Video-Link (TikTok/YouTube/Suno):`, current)
@@ -352,7 +398,7 @@ export default function CreatorProfileClient({
                           {creator.artist_name?.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      {isCreatorOwner && (
+                      {canEditProfile && (
                         <>
                           <button
                             onClick={(e) => {
@@ -405,7 +451,7 @@ export default function CreatorProfileClient({
                                   </div>
                                 )}
                               </button>
-                              {isCreatorOwner && (
+                              {canEditProfile && (
                                 <>
                                   <button
                                     onClick={(e) => {
@@ -460,7 +506,7 @@ export default function CreatorProfileClient({
                         </h1>
                         <p className="text-sm font-bold uppercase tracking-wider text-red-600">AI MUSIC CREATOR</p>
                       </div>
-                      {isCreatorOwner && (
+                      {canEditProfile && (
                         <div className="flex flex-col items-start gap-2">
                           <button
                             onClick={(e) => {
@@ -498,7 +544,7 @@ export default function CreatorProfileClient({
                           <div className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white px-4 py-1 border-2 border-black rounded-full text-sm font-black uppercase tracking-wide z-20">
                             {label}
                           </div>
-                          {isCreatorOwner && (
+                          {canEditProfile && (
                             <button
                               onClick={() => handleEditVideoSlot(key)}
                               className="absolute top-4 right-4 z-30 text-[11px] px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-black hover:text-white transition-colors"
@@ -543,7 +589,7 @@ export default function CreatorProfileClient({
                       BIO
                     </div>
                     <div className="bg-white border-2 border-black rounded-[2.5rem] p-4 md:p-6 min-h-[120px]">
-                      {isCreatorOwner ? (
+                      {canEditProfile ? (
                         <>
                           <textarea
                             value={bioDraft}
@@ -576,6 +622,11 @@ export default function CreatorProfileClient({
                               Creator Impressum
                             </a>
                           </p>
+                          {isCreatorOwner && !canEditProfile && (
+                            <p className="mt-3 text-[11px] font-mono uppercase tracking-widest text-red-600 text-center">
+                              Abo-Modell wählen, um zu bearbeiten
+                            </p>
+                          )}
                         </>
                       )}
                     </div>
@@ -584,10 +635,75 @@ export default function CreatorProfileClient({
 
                 {isCreatorOwner && (
                   <aside className="space-y-6 lg:sticky lg:top-6 self-start">
+                    <div className="bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-5 md:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                      <h3 className="font-black italic uppercase tracking-tighter text-base mb-4">
+                        Abo Modelle
+                      </h3>
+                      {loadingPlans ? (
+                        <p className="text-xs font-mono text-slate-500">Lade Modelle...</p>
+                      ) : subscriptionPlans.length === 0 ? (
+                        <p className="text-xs font-mono text-slate-500">Noch keine Modelle hinterlegt.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {subscriptionPlans.map((plan) => (
+                            <button
+                              key={plan.id}
+                              onClick={() => handleChoosePlan(plan.id)}
+                              disabled={savingPlan}
+                              className={`w-full text-left rounded-[1.4rem] border px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+                                activePlanId === plan.id
+                                  ? 'border-red-600 bg-red-50 text-red-700'
+                                  : 'border-slate-200 bg-white hover:border-red-400'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{plan.name || `Modell ${plan.plan_number || ''}`}</span>
+                                <span className="text-[11px] text-slate-500">{Number(plan.storage_gb || 0)} GB</span>
+                              </div>
+                              <div className="mt-1 text-[10px] font-mono text-slate-500">
+                                {Number(plan.monthly_price || 0).toFixed(2)} € / Monat
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {activePlan && (
+                        <p className="mt-3 text-[11px] font-mono text-slate-500">
+                          Aktiv: {activePlan.name || `Modell ${activePlan.plan_number}`}
+                        </p>
+                      )}
+                      {!canEditProfile && (
+                        <p className="mt-3 text-[11px] font-mono text-red-600">
+                          Vor dem Bearbeiten bitte ein Abo wählen.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                      <h3 className="font-black italic uppercase tracking-tighter text-lg mb-6">
+                        Upload
+                      </h3>
+                      <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 p-6 md:p-8 text-center">
+                        <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-4">
+                          // Upload_Field
+                        </p>
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full min-h-[56px] rounded-full border border-slate-200 bg-slate-100/80 text-sm font-bold uppercase tracking-wider text-slate-500"
+                        >
+                          Upload MP3/WAV (Coming Soon)
+                        </button>
+                        <p className="mt-4 text-[11px] text-slate-500">
+                          Optimiert für Mobile-Uploads – Button bleibt groß genug.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="relative bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="font-black italic uppercase tracking-tighter text-xl">
-                          Storage_Core <span className="text-red-600">v1.0</span>
+                          Kommandobrücke <span className="text-red-600">v1.0</span>
                         </h2>
                         <span className="text-[10px] font-mono uppercase text-slate-400">Demo</span>
                       </div>
@@ -649,27 +765,6 @@ export default function CreatorProfileClient({
                           })
                         )}
                       </ul>
-                    </div>
-
-                    <div className="bg-white/85 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-                      <h3 className="font-black italic uppercase tracking-tighter text-lg mb-6">
-                        Creator_Command <span className="text-red-600">Upload</span>
-                      </h3>
-                      <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 p-6 md:p-8 text-center">
-                        <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-4">
-                          // Upload_Field
-                        </p>
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full min-h-[56px] rounded-full border border-slate-200 bg-slate-100/80 text-sm font-bold uppercase tracking-wider text-slate-500"
-                        >
-                          Upload MP3/WAV (Coming Soon)
-                        </button>
-                        <p className="mt-4 text-[11px] text-slate-500">
-                          Optimiert für Mobile-Uploads – Button bleibt groß genug.
-                        </p>
-                      </div>
                     </div>
                   </aside>
                 )}
@@ -743,7 +838,7 @@ export default function CreatorProfileClient({
                   </a>
                 </div>
               </div>
-              {isCreatorOwner && (
+              {canEditProfile && (
                 <div className="mt-3 text-center">
                   <button
                     onClick={() => setShowImpressumEditor((v) => !v)}
@@ -755,7 +850,7 @@ export default function CreatorProfileClient({
               )}
             </div>
 
-            {showImpressumEditor && isCreatorOwner && (
+            {showImpressumEditor && canEditProfile && (
               <div className="px-4 md:px-6 pb-10">
                 <div className="bg-white border-2 border-black rounded-[1.5rem] p-4 md:p-5">
                   <h3 className="text-lg font-black uppercase mb-3">Impressum-Daten</h3>
@@ -869,7 +964,7 @@ export default function CreatorProfileClient({
                   )}
                   <div className="border-2 border-black rounded-[1.2rem] p-3">
                     <p className="text-[11px] font-black uppercase mb-2">Info / Tracklist / Lyrics</p>
-                    {isCreatorOwner ? (
+                    {canEditProfile ? (
                       <>
                         <textarea value={songNoteDraft} onChange={(e) => setSongNoteDraft(e.target.value)} placeholder="Optionaler Text..." className="w-full min-h-[80px] border-0 focus:outline-none resize-y text-sm" />
                         <button onClick={handleSaveSongNote} disabled={savingSongNote} className="mt-2 text-[11px] px-3 py-1 border-2 border-black rounded-full hover:bg-black hover:text-white">

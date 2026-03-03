@@ -1,0 +1,259 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
+
+type PlanRow = {
+  id?: string
+  plan_number: number
+  name: string
+  monthly_price: number
+  storage_gb: number
+  stripe_price_id?: string | null
+}
+
+const buildDefaultPlans = (): PlanRow[] =>
+  Array.from({ length: 6 }).map((_, index) => ({
+    plan_number: index + 1,
+    name: `${index + 1}`,
+    monthly_price: 0,
+    storage_gb: 0,
+    stripe_price_id: null,
+  }))
+
+export default function SubscriptionPlansClient() {
+  const supabase = createClient()
+  const [plans, setPlans] = useState<PlanRow[]>(buildDefaultPlans())
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [messagePlanId, setMessagePlanId] = useState<string>('')
+  const [messageSubject, setMessageSubject] = useState('')
+  const [messageContent, setMessageContent] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+
+  const planOptions = useMemo(() => plans.filter((p) => p.id), [plans])
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('subscription_plans')
+          .select('*')
+          .order('plan_number', { ascending: true })
+        if (error) throw error
+        if (data && data.length > 0) {
+          const normalized = buildDefaultPlans().map((fallback) => {
+            const match = data.find((row: any) => row.plan_number === fallback.plan_number)
+            return match
+              ? {
+                  id: match.id,
+                  plan_number: match.plan_number,
+                  name: match.name || `${match.plan_number}`,
+                  monthly_price: Number(match.monthly_price || 0),
+                  storage_gb: Number(match.storage_gb || 0),
+                  stripe_price_id: match.stripe_price_id || null,
+                }
+              : fallback
+          })
+          setPlans(normalized)
+        }
+      } catch (error) {
+        console.error('Plans laden fehlgeschlagen:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPlans()
+  }, [supabase])
+
+  const updatePlan = (index: number, patch: Partial<PlanRow>) => {
+    setPlans((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], ...patch }
+      return next
+    })
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      const payload = plans.map((plan) => ({
+        id: plan.id,
+        plan_number: plan.plan_number,
+        name: plan.name || `${plan.plan_number}`,
+        monthly_price: Number(plan.monthly_price || 0),
+        storage_gb: Number(plan.storage_gb || 0),
+        stripe_price_id: plan.stripe_price_id || null,
+      }))
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .upsert(payload, { onConflict: 'plan_number' })
+        .select('*')
+      if (error) throw error
+      if (data) {
+        setPlans(
+          data
+            .sort((a: any, b: any) => a.plan_number - b.plan_number)
+            .map((row: any) => ({
+              id: row.id,
+              plan_number: row.plan_number,
+              name: row.name || `${row.plan_number}`,
+              monthly_price: Number(row.monthly_price || 0),
+              storage_gb: Number(row.storage_gb || 0),
+              stripe_price_id: row.stripe_price_id || null,
+            }))
+        )
+      }
+      alert('Abo-Modelle gespeichert.')
+    } catch (error: any) {
+      alert(`Speichern fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!messagePlanId) {
+      alert('Bitte ein Abo-Modell auswählen.')
+      return
+    }
+    if (!messageSubject.trim() || !messageContent.trim()) {
+      alert('Betreff und Nachricht ausfüllen.')
+      return
+    }
+    try {
+      setSendingMessage(true)
+      const res = await fetch('/api/admin/subscription-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: messagePlanId,
+          subject: messageSubject.trim(),
+          content: messageContent.trim(),
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Senden fehlgeschlagen')
+      alert(`Nachrichten gesendet: ${json?.sent || 0}`)
+      setMessageSubject('')
+      setMessageContent('')
+    } catch (error: any) {
+      alert(`Senden fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(220,38,38,1)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">
+              Abo <span className="text-red-600">Modelle</span>
+            </h1>
+            <p className="text-xs font-bold uppercase tracking-widest opacity-40 mt-2">
+              Verwaltung der 6 Creator-Modelle
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-black uppercase tracking-tight">Modelle (1–6)</h2>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-black text-white px-4 py-2 text-xs font-black uppercase rounded-full hover:bg-red-600 transition-colors"
+          >
+            {saving ? 'Speichern...' : 'Speichern'}
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-xs font-mono text-zinc-500">Lade Modelle...</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {plans.map((plan, index) => (
+              <div key={plan.plan_number} className="border-2 border-black rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-black uppercase">Modell {plan.plan_number}</span>
+                  <span className="text-[10px] font-mono text-zinc-500">ID: {plan.id ? 'gesetzt' : 'neu'}</span>
+                </div>
+                <div className="space-y-2">
+                  <input
+                    value={plan.name}
+                    onChange={(e) => updatePlan(index, { name: e.target.value })}
+                    placeholder={`Name (z.B. ${plan.plan_number})`}
+                    className="w-full border-2 border-black rounded-full px-4 py-2 text-xs font-bold uppercase"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      value={plan.monthly_price}
+                      onChange={(e) => updatePlan(index, { monthly_price: Number(e.target.value) })}
+                      placeholder="Preis €/Monat"
+                      className="w-full border-2 border-black rounded-full px-4 py-2 text-xs"
+                    />
+                    <input
+                      type="number"
+                      value={plan.storage_gb}
+                      onChange={(e) => updatePlan(index, { storage_gb: Number(e.target.value) })}
+                      placeholder="Storage (GB)"
+                      className="w-full border-2 border-black rounded-full px-4 py-2 text-xs"
+                    />
+                  </div>
+                  <input
+                    value={plan.stripe_price_id || ''}
+                    onChange={(e) => updatePlan(index, { stripe_price_id: e.target.value })}
+                    placeholder="Stripe Price ID (optional)"
+                    className="w-full border-2 border-black rounded-full px-4 py-2 text-xs"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border-2 border-black rounded-[2.5rem] p-6 md:p-8">
+        <h2 className="text-xl font-black uppercase tracking-tight mb-4">Nachricht an Abo‑Gruppe</h2>
+        <div className="grid gap-3">
+          <select
+            value={messagePlanId}
+            onChange={(e) => setMessagePlanId(e.target.value)}
+            className="border-2 border-black rounded-full px-4 py-2 text-xs font-bold uppercase"
+          >
+            <option value="">Abo-Modell auswählen</option>
+            {planOptions.map((plan) => (
+              <option key={plan.id} value={plan.id}>
+                {plan.name || `Modell ${plan.plan_number}`}
+              </option>
+            ))}
+          </select>
+          <input
+            value={messageSubject}
+            onChange={(e) => setMessageSubject(e.target.value)}
+            placeholder="Betreff"
+            className="border-2 border-black rounded-full px-4 py-2 text-xs"
+          />
+          <textarea
+            value={messageContent}
+            onChange={(e) => setMessageContent(e.target.value)}
+            placeholder="Nachricht"
+            className="border-2 border-black rounded-2xl px-4 py-3 text-xs min-h-[120px]"
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={sendingMessage}
+            className="bg-black text-white px-4 py-2 text-xs font-black uppercase rounded-full hover:bg-red-600 transition-colors"
+          >
+            {sendingMessage ? 'Senden...' : 'Nachricht senden'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -158,6 +158,7 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
         creator={creator}
         songs={songs || []}
         isCreatorOwner={isCreatorOwner}
+        isAdmin={isAdmin}
         socials={socials}
         socialIcons={socialIcons}
       />

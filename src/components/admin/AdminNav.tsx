@@ -17,7 +17,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 const navItems = [
-  { name: 'Contest', icon: Trophy, href: '/admin/contest', color: 'text-black' },
+  { name: 'Abo Modelle', icon: Trophy, href: '/admin/contest', color: 'text-black' },
   { name: 'Kontrolle', icon: Activity, href: '/admin/kontrolle', color: 'text-black' },
   { name: 'Filter', icon: Shield, href: '/admin/filters', color: 'text-red-600' },
   { name: 'Meldungen', icon: Flag, href: '/admin/reports', color: 'text-red-600' },
