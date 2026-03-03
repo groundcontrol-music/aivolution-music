@@ -2,8 +2,34 @@ import Link from 'next/link'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import CompactSongCard from '@/components/creator/CompactSongCard'
 import FooterWithModal from '@/components/footer/FooterWithModal'
+import AivoExplanerBox from '@/components/AivoExplanerBox';
+import HomepageMediaCard from '@/components/HomepageMediaCard'; // Neuer Import // Neue Import für AivoExplanerBox
+import { headers } from 'next/headers';
 
-// Hauptseite: Aivolution Startseite
+type PlatformEvent = {
+  id: string;
+  event_name: string;
+  country_code: string;
+  start_date: string;
+  end_date: string;
+  theme_color_hex: string;
+  aivo_skin_id: string;
+  is_active: boolean;
+  created_at?: string;
+};
+
+type PromoSlot = {
+  id?: string;
+  slot_id: number;
+  title: string;
+  subtitle: string;
+  body_text?: string;
+  media_type?: 'image' | 'youtube' | 'tiktok' | 'none';
+  media_url?: string;
+  youtube_id?: string;
+  tiktok_id?: string;
+};
+
 export default async function HomePage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -26,6 +52,18 @@ export default async function HomePage() {
     .from('songs')
     .select('id, title, price, cover_url, release_type, genres, user_id')
     .eq('is_probe', false)
+
+  // Media Slots für die Startseite laden (Slot 1, 2, 3, 5)
+  const { data: rawMediaSlots } = await supabase
+    .from('promo_slots')
+    .select('*')
+    .in('slot_id', [1, 2, 3, 5])
+    .order('slot_id', { ascending: true });
+
+  const mediaSlots = (rawMediaSlots ?? []).map(slot => ({
+    ...slot,
+    id: slot.id || `slot-${slot.slot_id}` // Sicherstellen, dass jede Slot ein id hat
+  })) as PromoSlot[];
 
   // Creator-Namen für Top Ten + Genre-Songs
   const creatorIds = [...new Set([...(topTenRows ?? []).map((s) => s.user_id), ...(allSongsForGenres ?? []).map((s) => s.user_id)].filter(Boolean))]
@@ -93,6 +131,10 @@ export default async function HomePage() {
     return 'Single'
   }
 
+  const headersList = await headers();
+  const activeEventHeader = headersList.get('x-active-event');
+  const activeEvent: PlatformEvent | null = activeEventHeader ? JSON.parse(activeEventHeader) : null;
+
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans selection:bg-red-500/30">
       
@@ -120,48 +162,17 @@ export default async function HomePage() {
             <h2 className="mb-6 font-mono text-xs font-bold uppercase tracking-widest text-slate-400">
               // CREATOR TOP TEN TRACKS — KURATIERT VON AIVOLUTION
             </h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {topTen.length > 0 ? (
-                topTen.map((song, idx) => (
-                  <Link
-                    key={song.id}
-                    href={song.creator?.artist_name_slug ? `/creator/${song.creator.artist_name_slug}#song-${song.id}` : '#'}
-                    className="aspect-square rounded-[2.5rem] bg-white border border-slate-100 p-2 shadow-sm transition-all hover:scale-[1.02] hover:border-red-500 hover:shadow-xl group cursor-pointer"
-                  >
-                    <div className="h-full w-full rounded-[2rem] bg-slate-100 overflow-hidden relative">
-                      {song.cover_url ? (
-                        <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl font-black text-slate-300">🎵</div>
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                        <div className="h-12 w-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg text-white">▶</div>
-                      </div>
-                      <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-br-md">{idx + 1}</span>
-                    </div>
-                    <p className="mt-1.5 text-[11px] font-black uppercase leading-tight line-clamp-2 text-center">{song.title}</p>
-                    <p className="text-[9px] text-slate-600 font-bold text-center">{song.creator?.artist_name ?? '–'}</p>
-                    <p className="text-[9px] text-red-600 font-black text-center">€{(Number(song.price) || 0).toFixed(2)} · {formatType(song.release_type)}</p>
-                  </Link>
-                ))
-              ) : (
-                <p className="col-span-full text-sm text-slate-500 font-bold uppercase">Noch keine Top Ten Tracks.</p>
-              )}
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
+              {mediaSlots.slice(0, 4).map((slot) => (
+                <HomepageMediaCard key={slot.id} slot={slot} />
+              ))}
             </div>
           </section>
 
           {/* SEKTION: AIVO & SHOP GRID */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
              {/* AIVO VIDEO KACHEL */}
-             <div className="md:col-span-1 aspect-square rounded-[2.5rem] bg-black border border-red-600/20 p-6 flex flex-col items-center justify-between text-center relative overflow-hidden group">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse text-white text-5xl font-black mb-4">
-                  🤖
-                </div> {/* Aivo Avatar Placeholder */}
-                <button className="bg-red-600 text-white px-6 py-2 rounded-full font-mono text-[10px] tracking-tighter hover:bg-white hover:text-red-600 transition-colors">
-                  PLAY_GUIDE
-                </button>
-                <span className="font-mono text-[9px] text-red-500 uppercase opacity-50">[AIVO_EXPL_V1.0]</span>
-             </div>
+             <AivoExplanerBox aivoSkinId={activeEvent?.aivo_skin_id || 'default'} />
 
              {/* CREATOR SHOP PREVIEW (Genre Zeilen) */}
              <div className="md:col-span-3 space-y-8">

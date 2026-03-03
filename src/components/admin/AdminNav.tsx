@@ -25,6 +25,7 @@ const navItems = [
   { name: 'Logbuch', icon: Mail, href: '/admin/postamt', color: 'text-black' },
   { name: 'Terms', icon: Settings, href: '/admin/terms', color: 'text-black' },
   { name: 'Finanzen', icon: DollarSign, href: '/admin/finanzen', color: 'text-black' },
+  { name: 'Events', icon: Flag, href: '/admin/events', color: 'text-black' },
 ];
 
 interface Badge {
