@@ -51,7 +51,7 @@ export default async function AdminUseruebersichtPage({
 
   let listQuery = supabase
     .from('profiles')
-    .select('id, artist_name, artist_name_slug, role, onboarding_status, visibility, updated_at')
+    .select('id, artist_name, artist_name_slug, role, onboarding_status, visibility, updated_at, email')
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(100)
 
@@ -59,6 +59,8 @@ export default async function AdminUseruebersichtPage({
     const searchClauses = [
       `artist_name.ilike.%${qNoComma}%`,
       `artist_name_slug.ilike.%${qNoComma}%`,
+      `email.ilike.%${qNoComma}%`,
+      `id.eq.${qNoComma}`,
     ]
     if (qSlugLike && qSlugLike !== qNoComma.toLowerCase()) {
       searchClauses.push(`artist_name_slug.ilike.%${qSlugLike}%`)
@@ -141,6 +143,7 @@ export default async function AdminUseruebersichtPage({
                 <tr className="text-left text-xs uppercase">
                   <th className="px-3 py-2 font-black">Name</th>
                   <th className="px-3 py-2 font-black">Slug</th>
+                  <th className="px-3 py-2 font-black">Email</th>
                   <th className="px-3 py-2 font-black">Role</th>
                   <th className="px-3 py-2 font-black">Status</th>
                   <th className="px-3 py-2 font-black">Sichtbarkeit</th>
@@ -153,6 +156,7 @@ export default async function AdminUseruebersichtPage({
                   <tr key={row.id} className="border-t">
                     <td className="px-3 py-2 text-sm font-semibold">{row.artist_name || '—'}</td>
                     <td className="px-3 py-2 text-xs font-mono">{row.artist_name_slug || '—'}</td>
+                    <td className="px-3 py-2 text-xs font-mono">{row.email || '—'}</td>
                     <td className="px-3 py-2 text-xs">{row.role || '—'}</td>
                     <td className="px-3 py-2 text-xs">{row.onboarding_status || '—'}</td>
                     <td className="px-3 py-2 text-xs">{row.visibility || '—'}</td>
@@ -183,7 +187,7 @@ export default async function AdminUseruebersichtPage({
                 ))}
                 {(rows || []).length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-6 text-center text-sm opacity-60">
+                    <td colSpan={8} className="px-3 py-6 text-center text-sm opacity-60">
                       Keine User gefunden.
                     </td>
                   </tr>
