@@ -33,11 +33,6 @@ export default function LockPage() {
   const [dir, setDir] = useState<Dir>('right')
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
-  const [showLogin, setShowLogin] = useState(false)
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
   const [showBypass, setShowBypass] = useState(false)
   const [bypassUser, setBypassUser] = useState('')
   const [bypassPassword, setBypassPassword] = useState('')
@@ -102,7 +97,7 @@ export default function LockPage() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (gameOver || showLogin || showBypass) return
+      if (gameOver || showBypass) return
       const d = dirRef.current
       if (e.key === 'ArrowUp' && d !== 'down') setDir('up')
       else if (e.key === 'ArrowDown' && d !== 'up') setDir('down')
@@ -148,24 +143,6 @@ export default function LockPage() {
     void loadAnnouncements()
   }, [supabase])
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoginError('')
-    setLoginLoading(true)
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
-    })
-    const data = await res.json().catch(() => ({}))
-    setLoginLoading(false)
-    if (res.ok && data.redirect) {
-      window.location.href = data.redirect
-      return
-    }
-    setLoginError(data.error || 'Login fehlgeschlagen')
-  }
-
   async function handleBypass(e: React.FormEvent) {
     e.preventDefault()
     setBypassError('')
@@ -194,19 +171,18 @@ export default function LockPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 gap-6">
       <div className="relative pt-20">
-        <button
-          type="button"
-          onClick={() => setShowLogin(true)}
+        <Link
+          href="/login"
           className="absolute left-1/2 -translate-x-1/2 -top-10 z-20 transition-transform hover:scale-105"
-          aria-label="Aivo Login"
-          title="Aivo"
+          aria-label="Login"
+          title="Login"
         >
           <img
             src="/aivo-robot.png"
             alt="Aivo"
             className="h-16 w-auto sm:h-20 md:h-24 lg:h-28 object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.45)] animate-[pulse_3s_ease-in-out_infinite]"
           />
-        </button>
+        </Link>
         <h1 className="text-white text-2xl md:text-4xl font-black italic uppercase tracking-tight">
           Aivolution<span className="text-red-600">Music</span>
         </h1>
@@ -282,67 +258,6 @@ export default function LockPage() {
         food={food}
         gameOver={gameOver}
       />
-
-      {/* Secret Login Modal */}
-      {showLogin && (
-        <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowLogin(false)}
-        >
-          <form
-            onSubmit={handleLogin}
-            onClick={e => e.stopPropagation()}
-            className="w-full max-w-sm bg-black border-2 border-red-600 rounded-[2.5rem] p-8 space-y-4"
-          >
-            <h2 className="text-red-500 font-black text-lg uppercase text-center">
-              Secret Login
-            </h2>
-            <div>
-              <label className="block text-[10px] text-white/60 uppercase mb-1">
-                Künstlername oder Email
-              </label>
-              <input
-                type="text"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                className="w-full p-3 bg-black border-2 border-white text-white rounded-xl focus:outline-none focus:border-red-600"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-white/60 uppercase mb-1">
-                Passwort
-              </label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                className="w-full p-3 bg-black border-2 border-white text-white rounded-xl focus:outline-none focus:border-red-600"
-                required
-              />
-            </div>
-            {loginError && (
-              <p className="text-red-500 text-sm">{loginError}</p>
-            )}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowLogin(false)}
-                className="flex-1 py-3 border-2 border-white/50 text-white/80 rounded-[2.5rem] text-sm font-bold uppercase hover:bg-white/10"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="flex-1 py-3 bg-red-600 text-white rounded-[2.5rem] text-sm font-bold uppercase hover:bg-red-500 disabled:opacity-50"
-              >
-                {loginLoading ? '...' : 'Einloggen'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       <div className="pt-1 flex flex-col items-center gap-2">
         <button

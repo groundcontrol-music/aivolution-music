@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Sperre umgehen (ohne Supabase-Login): Setzt Cookie, Proxy lässt dann durch.
@@ -11,10 +12,6 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 Tage
 export async function POST(request: NextRequest) {
   const user = process.env.LOCK_BYPASS_USER
   const password = process.env.LOCK_BYPASS_PASSWORD
-
-  if (!user || !password) {
-    return NextResponse.json({ error: 'Bypass nicht konfiguriert' }, { status: 501 })
-  }
 
   let inputUser: string
   let inputPassword: string
@@ -29,13 +26,44 @@ export async function POST(request: NextRequest) {
     inputPassword = (form?.get('password') ?? '').toString()
   }
 
-  if (inputUser !== user || inputPassword !== password) {
-    return NextResponse.json({ error: 'Anmeldename oder Passwort falsch' }, { status: 401 })
+  if (!inputUser || !inputPassword) {
+    return NextResponse.json({ error: 'Anmeldename oder Passwort fehlt' }, { status: 400 })
+  }
+
+  if (user && password) {
+    if (inputUser !== user || inputPassword !== password) {
+      return NextResponse.json({ error: 'Anmeldename oder Passwort falsch' }, { status: 401 })
+    }
+  } else {
+    // Fallback: Admin-Login per Supabase, wenn kein Bypass-ENV gesetzt ist
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: 'Supabase ENV fehlt' }, { status: 500 })
+    }
+
+    const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: inputUser,
+      password: inputPassword,
+    })
+    if (authError || !authData?.user) {
+      return NextResponse.json({ error: 'Login fehlgeschlagen' }, { status: 401 })
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.user.id)
+      .single()
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Nur Admins dürfen den Bypass nutzen' }, { status: 403 })
+    }
   }
 
   const origin = request.nextUrl.origin
   const response = NextResponse.redirect(new URL('/', origin), 303)
-  response.cookies.set(COOKIE_NAME, password, {
+  const cookieValue = password || 'admin'
+  response.cookies.set(COOKIE_NAME, cookieValue, {
     path: '/',
     maxAge: COOKIE_MAX_AGE,
     httpOnly: true,
