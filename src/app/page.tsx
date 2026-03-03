@@ -136,8 +136,7 @@ export default async function HomePage() {
   const activeEvent: PlatformEvent | null = activeEventHeader ? JSON.parse(activeEventHeader) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans selection:bg-red-500/30">
-      
+    <div className="w-full font-sans selection:bg-red-500/30">
       {/* 1. HEADER MIT INTELLIGENTER SUCHE */}
       <header className="mb-12 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black italic tracking-tighter uppercase">

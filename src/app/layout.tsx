@@ -55,8 +55,8 @@ function EventBackgroundWrapper({ activeEvent, children }: { activeEvent: Platfo
 
   return (
     <div className={`min-h-screen transition-all duration-1000 ${holidayStyle}`}>
-      <div classNameName="absolute inset-0 border-[1.5rem] border-slate-100 rounded-[2.5rem] pointer-events-none" />
-      <div classNameName="relative z-10">
+      <div className="absolute inset-0 border-[1.5rem] border-slate-100 rounded-[2.5rem] pointer-events-none" />
+      <div className="relative z-10">
         {children}
       </div>
     </div>

@@ -6,6 +6,14 @@
 - Farbschema: Schwarz, Rot, Weiß.
 - Qualitätsanspruch: "Crunchy" und hochwertig, kein Standard-Template-Look.
 - **UI-Philosophie:** Dezent und clean. Lieber kleine Menüs/Panels als wuchtige Elemente.
+### Globales UI-Update (gilt fuer alle Oberflaechen)
+- Alle Oberflaechen nutzen einen konsistenten Rahmen im Creator-Profil-Stil.
+- Außenrahmen: `border-2 border-black`, `rounded-[2.5rem]`, starker Shadow (brutalistisch).
+- Innenflaechen: Glas-Layer (z.B. `bg-white/80` + `backdrop-blur-xl`).
+- Kanten statt harter Linien: 1px helle Borders, weiche Schatten, keine dicken Rahmen pro Karte.
+- Hover/Active: dezenter roter Glow (keine knalligen Effekte), leichte Scale/Opacity.
+- Monospace fuer Meta-Daten/Labels (z.B. Counter, Status, Tabellenheader).
+- Dot-Grid/Blueprint-Hintergrund nur dezent als Layer, nie dominant.
 
 ## Plattform-Architektur & Features
 
