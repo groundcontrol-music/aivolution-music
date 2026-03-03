@@ -43,13 +43,34 @@ export default async function HomePage({
   const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
 
 
-  // Top Ten (nach Verkäufen → download_count)
-  const { data: topTenRows } = await supabase
+  let trackFilter: 'most_purchased' | 'most_listened' | 'newest' = 'most_purchased'
+  try {
+    const { data: trackFilterRow } = await supabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'homepage_track_filter')
+      .single()
+    if (trackFilterRow?.value) {
+      trackFilter = trackFilterRow.value
+    }
+  } catch {
+    // Fallback auf Default
+  }
+
+  // Top Ten (nach Kriterien)
+  const topTenQuery = supabase
     .from('songs')
-    .select('id, title, price, cover_url, file_url, mp3_preview_url, wav_url, download_count, release_type, genres, user_id')
+    .select('id, title, price, cover_url, file_url, mp3_preview_url, wav_url, download_count, release_type, genres, user_id, created_at')
     .eq('is_probe', false)
-    .order('download_count', { ascending: false })
-    .limit(10)
+
+  if (trackFilter === 'newest') {
+    topTenQuery.order('created_at', { ascending: false })
+  } else {
+    // most_purchased + most_listened (Fallback: download_count)
+    topTenQuery.order('download_count', { ascending: false })
+  }
+
+  const { data: topTenRows } = await topTenQuery.limit(10)
 
   // Top Genres: alle Shop-Songs für Genre-Aggregation
   const { data: allSongsForGenres } = await supabase

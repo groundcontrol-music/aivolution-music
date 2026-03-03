@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { Activity, Shield, Bug, Wrench, FileText, Megaphone, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import HomepageTrackFilterCard from '@/components/admin/HomepageTrackFilterCard'
 
 export default async function AdminKontrollePage() {
   const supabase = await createClient()
@@ -72,6 +73,8 @@ export default async function AdminKontrollePage() {
             <p className="text-xs mt-2">Onlinezahlen, Suche und Profile direkt ansehen.</p>
           </Link>
         </div>
+
+        <HomepageTrackFilterCard />
 
         <div className="bg-white border-2 border-black rounded-xl p-5">
           <div className="flex items-start justify-between gap-4">
