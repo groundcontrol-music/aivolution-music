@@ -30,7 +30,11 @@ type PromoSlot = {
   tiktok_id?: string;
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !supabaseKey) {
@@ -135,8 +139,30 @@ export default async function HomePage() {
   const activeEventHeader = headersList.get('x-active-event');
   const activeEvent: PlatformEvent | null = activeEventHeader ? JSON.parse(activeEventHeader) : null;
 
+  const signupSuccess =
+    (typeof searchParams?.signup === 'string' && searchParams.signup === 'success') ||
+    (Array.isArray(searchParams?.signup) && searchParams?.signup.includes('success'))
+
   return (
     <div className="w-full font-sans selection:bg-red-500/30">
+      {signupSuccess && (
+        <div className="mb-8 rounded-[2.5rem] bg-white/80 backdrop-blur-xl border border-slate-200 p-4 md:p-6 shadow-[0_10px_40px_rgba(15,23,42,0.08)]">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-[1.5rem] border-2 border-black bg-white flex items-center justify-center text-2xl">
+              🤖
+            </div>
+            <div>
+              <p className="text-xs font-mono uppercase tracking-widest text-slate-500">AIVO STATUS</p>
+              <p className="text-sm md:text-base font-black uppercase">
+                Bewerbung erfolgreich eingereicht. Songs wurden hochgeladen.
+              </p>
+              <p className="text-xs text-slate-500">
+                Du erhältst eine Nachricht, sobald dein Profil geprüft wurde.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 1. HEADER MIT INTELLIGENTER SUCHE */}
       <header className="mb-12 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black italic tracking-tighter uppercase">

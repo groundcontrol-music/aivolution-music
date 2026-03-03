@@ -47,5 +47,14 @@ export async function POST(request: NextRequest) {
     status: 'approved'
   })
 
+  await supabase.from('messages').insert({
+    recipient_id: user.id,
+    sender_id: null,
+    message_type: 'system',
+    subject: '✅ Freischaltung erfolgreich',
+    content: `Profil von ${profile?.artist_name || 'Creator'} wurde freigeschaltet.`,
+    status: 'approved'
+  })
+
   return redirect('/admin/applications')
 }

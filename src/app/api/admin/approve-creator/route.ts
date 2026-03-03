@@ -95,6 +95,17 @@ export async function POST(request: Request) {
         status: 'unread'
       })
 
+    await supabase
+      .from('messages')
+      .insert({
+        recipient_id: user.id,
+        sender_id: null,
+        message_type: 'system',
+        subject: '✅ Freischaltung erfolgreich',
+        content: `Profil von ${profile.artist_name || 'Creator'} wurde freigeschaltet.`,
+        status: 'approved'
+      })
+
     const approvalTemplate = await loadTemplateBySlot(
       supabase,
       CURATION_TEMPLATE_DEFAULTS.approval.slotId,
@@ -110,7 +121,7 @@ export async function POST(request: Request) {
       mediaUrl: approvalTemplate.mediaUrl,
     })
     
-    return NextResponse.redirect(new URL(redirectPath, request.url), 303)
+    return NextResponse.redirect(new URL(redirectPath, request.nextUrl.origin), 303)
     
   } catch (error: any) {
     console.error('Approve error:', error)

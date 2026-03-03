@@ -30,6 +30,25 @@ export default function MessagesPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  const formatDateShort = (value?: string) => {
+    if (!value) return '—'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '—'
+    return date.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatDateTime = (value?: string) => {
+    if (!value) return '—'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '—'
+    return date.toLocaleString('de-DE')
+  }
+
   useEffect(() => {
     fetchMessages()
   }, [filter])
@@ -239,12 +258,7 @@ export default function MessagesPage() {
                         {msg.sender?.artist_name || getTypeLabel(msg.message_type)}
                       </div>
                       <div className="text-[10px] font-mono opacity-50">
-                        {new Date(msg.created_at).toLocaleDateString('de-DE', { 
-                          day: '2-digit', 
-                          month: 'short', 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                        {formatDateShort(msg.created_at)}
                       </div>
                     </div>
                     {!msg.is_read && (
@@ -280,7 +294,7 @@ export default function MessagesPage() {
                     )}
                     <div className="text-xs font-mono opacity-50">
                       Von: {selectedMessage.sender?.artist_name || 'System'} •{' '}
-                      {new Date(selectedMessage.created_at).toLocaleString('de-DE')}
+                      {formatDateTime(selectedMessage.created_at)}
                     </div>
                   </div>
                   {!selectedMessage.id.startsWith('virtual-') && (
