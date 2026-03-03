@@ -21,7 +21,15 @@ export async function GET(request: NextRequest) {
       .eq('artist_name_slug', slug)
       .single()
 
-    if (creatorError || !creator || creator.visibility !== 'public' || creator.role !== 'creator') {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: role } = user ? await supabase.rpc('get_my_role') : { data: null }
+    const isOwner = Boolean(user?.id) && creator?.id === user?.id
+    const isAdmin = role === 'admin'
+
+    if (creatorError || !creator || creator.role !== 'creator') {
+      return NextResponse.json({ error: 'Nicht gefunden.' }, { status: 404 })
+    }
+    if (!isOwner && !isAdmin && creator.visibility !== 'public') {
       return NextResponse.json({ error: 'Nicht gefunden.' }, { status: 404 })
     }
 

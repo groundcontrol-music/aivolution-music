@@ -30,18 +30,62 @@ function buildImpressumSvg(input: {
   ].filter(Boolean)
 
   const lineEls = lines
-    .map((line, i) => `<text x="36" y="${110 + i * 48}" font-size="30" font-family="Arial, Helvetica, sans-serif" fill="#111">${esc(line)}</text>`)
+    .map((line, i) => `<text x="68" y="${170 + i * 54}" font-size="30" font-family="Arial, Helvetica, sans-serif" fill="#111">${esc(line)}</text>`)
     .join('')
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <pattern id="dotGrid" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="0.8" fill="#111" opacity="0.06"/>
+    </pattern>
+    <pattern id="noise" width="120" height="120" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="18" r="1.2" fill="#000" opacity="0.05"/>
+      <circle cx="84" cy="14" r="1" fill="#000" opacity="0.04"/>
+      <circle cx="42" cy="66" r="1.4" fill="#000" opacity="0.05"/>
+      <circle cx="98" cy="78" r="1.2" fill="#000" opacity="0.04"/>
+      <circle cx="26" cy="96" r="1" fill="#000" opacity="0.04"/>
+    </pattern>
+    <pattern id="diagLines" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(22)">
+      <line x1="0" y1="0" x2="0" y2="36" stroke="#111" stroke-width="1" opacity="0.05"/>
+    </pattern>
+  </defs>
   <rect width="1600" height="900" fill="#f4f4f5"/>
-  <rect x="24" y="24" width="1552" height="852" rx="30" fill="#fff" stroke="#111" stroke-width="4"/>
-  <text x="36" y="70" font-size="42" font-weight="700" font-family="Arial, Helvetica, sans-serif" fill="#dc2626">Creator Impressum</text>
+  <rect x="32" y="32" width="1536" height="836" rx="36" fill="#ffffff" stroke="#111" stroke-width="2"/>
+  <rect x="32" y="32" width="1536" height="836" rx="36" fill="url(#dotGrid)"/>
+  <rect x="32" y="32" width="1536" height="836" rx="36" fill="url(#noise)" opacity="0.35"/>
+  <rect x="32" y="32" width="1536" height="836" rx="36" fill="url(#diagLines)" opacity="0.25"/>
+
+  <text x="68" y="120" font-size="48" font-weight="700" font-family="Arial, Helvetica, sans-serif" fill="#dc2626">Creator Impressum</text>
+  <rect x="68" y="136" width="420" height="6" rx="3" fill="#111" opacity="0.08"/>
+
   ${lineEls}
-  <text x="36" y="850" font-size="16" font-family="Arial, Helvetica, sans-serif" fill="#666">Aivolution Music · geschützte Darstellung gegen automatisches Auslesen</text>
-  <g opacity="0.08">
-    <circle cx="1460" cy="120" r="72" fill="#dc2626"/>
-    <circle cx="1360" cy="780" r="58" fill="#111"/>
+
+  <g opacity="0.24">
+    <text x="1180" y="120" font-size="12" font-family="Arial, Helvetica, sans-serif" fill="#111" transform="rotate(-8 1180 120)">
+      AIVOLUTION • SCHUTZLAYER
+    </text>
+    <text x="1120" y="820" font-size="12" font-family="Arial, Helvetica, sans-serif" fill="#111" transform="rotate(-8 1120 820)">
+      AIVOLUTION • SCHUTZLAYER
+    </text>
+  </g>
+  <g opacity="0.12">
+    <text x="220" y="520" font-size="18" font-family="Arial, Helvetica, sans-serif" fill="#111" transform="rotate(-18 220 520)">
+      AIVOLUTION • CREATOR IMPRESSUM • NICHT MASCHINELL AUSLESEN
+    </text>
+    <text x="680" y="640" font-size="16" font-family="Arial, Helvetica, sans-serif" fill="#111" transform="rotate(-18 680 640)">
+      AIVOLUTION • CREATOR IMPRESSUM • NICHT MASCHINELL AUSLESEN
+    </text>
+  </g>
+  <g opacity="0.35">
+    <text x="1180" y="760" font-size="10" letter-spacing="2" font-family="Arial, Helvetica, sans-serif" fill="#111" transform="rotate(-8 1180 760)">
+      AIVOLUTIONMUSIC • CREATOR • LEGAL • SECURE • AIVOLUTIONMUSIC • CREATOR • LEGAL • SECURE
+    </text>
+  </g>
+
+  <text x="68" y="840" font-size="16" font-family="Arial, Helvetica, sans-serif" fill="#666">Aivolution Music · geschützte Darstellung gegen automatisches Auslesen</text>
+  <g opacity="0.09">
+    <circle cx="1460" cy="140" r="72" fill="#dc2626"/>
+    <circle cx="1360" cy="760" r="58" fill="#111"/>
   </g>
 </svg>`
 }

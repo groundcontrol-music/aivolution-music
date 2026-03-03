@@ -10,7 +10,14 @@ const LEGAL_CHECKBOXES = [
   { id: 'rights', text: 'Ich besitze alle Rechte an den hochgeladenen Songs' },
   { id: 'ai', text: 'Meine Songs wurden mit KI-Tools erstellt' },
   { id: 'laws', text: 'Meine Songs verstoßen nicht gegen Gesetze oder Richtlinien' },
-  { id: 'agb', text: 'Ich akzeptiere die AGBs & Datenschutzerklärung' },
+  {
+    id: 'agb',
+    text: 'Ich akzeptiere die AGBs & Datenschutzerklärung',
+    links: [
+      { label: 'AGB', href: '/agb' },
+      { label: 'Datenschutz', href: '/datenschutz' },
+    ]
+  },
   { id: 'deletion', text: 'Ich verstehe, dass bei Ablehnung alle Daten gelöscht werden' },
 ]
 
@@ -194,6 +201,21 @@ export default function CreatorSignupSlimPage() {
         if (notifyError) throw notifyError
       }
 
+      // Upload-Gate Checks (Badwords, Format, Heuristiken) + Meldungen
+      try {
+        const reviewRes = await fetch('/api/creator/upload-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songIds: skeletonSongIds })
+        })
+        if (!reviewRes.ok) {
+          const reviewJson = await reviewRes.json().catch(() => ({}))
+          console.warn('Upload-Checks fehlgeschlagen:', reviewJson?.error || reviewRes.statusText)
+        }
+      } catch (reviewError) {
+        console.warn('Upload-Checks nicht erreichbar:', reviewError)
+      }
+
       // Erfolg
       router.push('/?signup=success')
       
@@ -216,19 +238,21 @@ export default function CreatorSignupSlimPage() {
 
   if (step === 'legal') {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white border-2 border-black rounded-[2.5rem] p-8 shadow-[12px_12px_0px_0px_rgba(220,38,38,1)]">
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+      <div className="max-w-3xl w-full bg-white/85 backdrop-blur-xl border border-slate-200 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_60px_rgba(15,23,42,0.12)] relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-red-500/5 blur-2xl" />
+        <div className="absolute -bottom-20 -left-20 w-56 h-56 rounded-full bg-black/5 blur-2xl" />
           
-          <div className="mb-8 border-b-2 border-black pb-6">
-            <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none">
+          <div className="mb-8 border-b border-slate-200 pb-6 relative z-10">
+            <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
               Creator <span className="text-red-600">werden</span>
             </h1>
-            <p className="text-xs font-bold uppercase tracking-widest opacity-40 mt-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-3">
               Schritt 1/2: Rechtliche Bestimmungen
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 relative z-10">
             
             {/* Basis-Daten */}
             <div className="grid md:grid-cols-2 gap-4">
@@ -238,7 +262,7 @@ export default function CreatorSignupSlimPage() {
                   type="text"
                   value={artistName}
                   onChange={(e) => setArtistName(e.target.value)}
-                  className="w-full p-3 border-2 border-black font-bold focus:border-red-600 outline-none"
+                  className="w-full p-3 rounded-full border border-slate-200 bg-white/90 font-bold focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all"
                   placeholder="DEIN STAGE NAME"
                 />
               </div>
@@ -248,7 +272,7 @@ export default function CreatorSignupSlimPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 border-2 border-black font-mono focus:border-red-600 outline-none"
+                  className="w-full p-3 rounded-full border border-slate-200 bg-white/90 font-mono focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all"
                   placeholder="deine@email.de"
                 />
               </div>
@@ -261,14 +285,14 @@ export default function CreatorSignupSlimPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
-                className="w-full p-3 border-2 border-black font-mono focus:border-red-600 outline-none"
+                className="w-full p-3 rounded-full border border-slate-200 bg-white/90 font-mono focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all"
                 placeholder="Mindestens 6 Zeichen"
               />
             </div>
 
             {/* Rechtliche Checkboxen */}
-            <div className="bg-zinc-50 border-2 border-black p-6 rounded-[2.5rem] space-y-4">
-              <h3 className="text-sm font-black uppercase mb-4 pb-2 border-b border-black">
+            <div className="bg-white/80 backdrop-blur-md border border-slate-200 p-6 rounded-[2.5rem] space-y-4">
+              <h3 className="text-sm font-black uppercase mb-4 pb-2 border-b border-slate-200">
                 Rechtliche Bestätigung
               </h3>
               {LEGAL_CHECKBOXES.map((item) => (
@@ -278,18 +302,38 @@ export default function CreatorSignupSlimPage() {
                       type="checkbox"
                       checked={legalChecks[item.id] || false}
                       onChange={(e) => setLegalChecks({ ...legalChecks, [item.id]: e.target.checked })}
-                      className="w-5 h-5 border-2 border-black"
+                      className="w-5 h-5 border-2 border-black accent-red-600"
                     />
                   </div>
                   <span className="text-sm font-medium group-hover:text-red-600 transition-colors">
                     {item.text}
+                    {'links' in item && item.links?.length ? (
+                      <span className="ml-2 inline-flex items-center gap-2 text-[11px] font-mono text-slate-500">
+                        {item.links.map((link) => (
+                          <a
+                            key={link.href}
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-red-600"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
                 </label>
               ))}
+              <p className="text-[11px] font-mono text-slate-500">
+                Weitere Hinweise: <a className="underline hover:text-red-600" href="/impressum" target="_blank" rel="noopener noreferrer">Impressum</a> ·{' '}
+                <a className="underline hover:text-red-600" href="/hilfe" target="_blank" rel="noopener noreferrer">Hilfe</a>
+              </p>
             </div>
 
             {/* Info-Box */}
-            <div className="bg-yellow-50 border-2 border-yellow-600 p-4 rounded-lg text-sm">
+            <div className="bg-white/80 border border-slate-200 p-4 rounded-2xl text-sm">
               <p className="font-bold mb-2">ℹ️ So geht es weiter:</p>
               <ul className="space-y-1 text-xs">
                 <li>✅ Du lädst im nächsten Schritt 2 Songs hoch</li>
@@ -302,7 +346,7 @@ export default function CreatorSignupSlimPage() {
             <button
               onClick={handleLegalSubmit}
               disabled={loading || !allChecked || !email || !password || !artistName}
-              className="w-full bg-black text-white py-4 font-black uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-black text-white py-4 rounded-full font-black uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="animate-spin" /> : <>Weiter zu Song-Upload <Check size={18} /></>}
             </button>
@@ -316,28 +360,30 @@ export default function CreatorSignupSlimPage() {
   // Step 2: Song Upload (MINIMAL!)
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white border-2 border-black rounded-[2.5rem] p-8 shadow-[12px_12px_0px_0px_rgba(220,38,38,1)]">
+      <div className="max-w-3xl w-full bg-white/85 backdrop-blur-xl border border-slate-200 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_60px_rgba(15,23,42,0.12)] relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-red-500/5 blur-2xl" />
+        <div className="absolute -bottom-20 -left-20 w-56 h-56 rounded-full bg-black/5 blur-2xl" />
         
-        <div className="mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none">
+        <div className="mb-8 border-b border-slate-200 pb-6 relative z-10">
+          <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
             Deine <span className="text-red-600">Songs</span>
           </h1>
-          <p className="text-xs font-bold uppercase tracking-widest opacity-40 mt-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-3">
             Schritt 2/2: Upload deiner besten Tracks
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           
-          <p className="text-sm bg-zinc-50 border-2 border-black p-4 rounded-lg font-medium">
+          <p className="text-sm bg-white/80 border border-slate-200 p-4 rounded-2xl font-medium">
             Lade hier <strong>mindestens 1 Song</strong> (maximal 2) hoch. 
             Diese dienen als Arbeitsprobe für unsere Prüfung.
           </p>
 
           {/* Song 1 */}
-          <div className="border-2 border-black p-6 rounded-[2.5rem] bg-white">
+          <div className="border border-slate-200 p-6 rounded-[2.5rem] bg-white/80">
             <div className="text-xs font-black text-red-600 uppercase mb-4">Track 01 (Pflicht)</div>
-            <label className="cursor-pointer bg-zinc-100 border-2 border-black px-6 py-4 text-sm font-bold uppercase hover:bg-black hover:text-white transition-colors flex items-center gap-3 justify-center rounded-lg">
+            <label className="cursor-pointer bg-white border border-slate-200 px-6 py-4 text-sm font-bold uppercase hover:border-red-500 hover:shadow-[0_0_24px_rgba(255,0,0,0.12)] transition-all flex items-center gap-3 justify-center rounded-full">
               <Music size={20} />
               {song1 ? `✅ ${song1.name}` : 'MP3 wählen (max. 10MB)'}
               <input type="file" accept="audio/mp3,audio/mpeg" className="hidden" onChange={(e) => {
@@ -352,9 +398,9 @@ export default function CreatorSignupSlimPage() {
           </div>
 
           {/* Song 2 */}
-          <div className="border-2 border-dashed border-gray-300 p-6 rounded-[2.5rem] bg-zinc-50">
+          <div className="border border-dashed border-slate-200 p-6 rounded-[2.5rem] bg-white/70">
             <div className="text-xs font-black text-gray-400 uppercase mb-4">Track 02 (Optional)</div>
-            <label className="cursor-pointer bg-white border-2 border-gray-300 px-6 py-4 text-sm font-bold uppercase hover:border-black hover:bg-black hover:text-white transition-colors flex items-center gap-3 justify-center rounded-lg">
+            <label className="cursor-pointer bg-white border border-slate-200 px-6 py-4 text-sm font-bold uppercase hover:border-red-500 hover:shadow-[0_0_24px_rgba(255,0,0,0.12)] transition-all flex items-center gap-3 justify-center rounded-full">
               <Music size={20} />
               {song2 ? `✅ ${song2.name}` : 'MP3 wählen (max. 10MB)'}
               <input type="file" accept="audio/mp3,audio/mpeg" className="hidden" onChange={(e) => {
@@ -369,7 +415,7 @@ export default function CreatorSignupSlimPage() {
           </div>
 
           {/* Info: Was passiert jetzt? */}
-          <div className="bg-green-50 border-2 border-green-600 p-6 rounded-[2.5rem]">
+          <div className="bg-white/80 border border-slate-200 p-6 rounded-[2.5rem]">
             <h3 className="text-sm font-black uppercase mb-3">✅ Was passiert nach dem Upload?</h3>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2"><span className="flex-shrink-0">🕐</span> Wir prüfen deine Bewerbung <strong>innerhalb von 48 Stunden</strong></li>
@@ -388,7 +434,7 @@ export default function CreatorSignupSlimPage() {
           <button
             onClick={handleSongUpload}
             disabled={loading || !song1}
-            className="w-full bg-red-600 text-white py-5 font-black uppercase tracking-widest hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 text-lg"
+            className="w-full bg-red-600 text-white py-5 rounded-full font-black uppercase tracking-widest hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 text-lg"
           >
             {loading ? <Loader2 className="animate-spin" size={24} /> : <>Bewerbung absenden 🚀</>}
           </button>

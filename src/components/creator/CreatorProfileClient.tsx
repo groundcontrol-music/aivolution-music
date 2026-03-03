@@ -39,12 +39,17 @@ export default function CreatorProfileClient({
   const [uploadingThumb, setUploadingThumb] = useState<number | null>(null)
   const [showImpressumEditor, setShowImpressumEditor] = useState(false)
   const [savingImpressum, setSavingImpressum] = useState(false)
+  const [impressumImageUrl, setImpressumImageUrl] = useState<string | null>(
+    creator?.impressum_image_url || null
+  )
   const [shopSearch, setShopSearch] = useState('')
   const [shopTypeFilter, setShopTypeFilter] = useState<'all' | 'single' | 'ep' | 'album'>('all')
   const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([])
   const [activePlanId, setActivePlanId] = useState<string | null>(creator.subscription_plan_id || null)
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [savingPlan, setSavingPlan] = useState(false)
+  const [uploadingSongs, setUploadingSongs] = useState(false)
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null)
   const [impressumForm, setImpressumForm] = useState({
     legal_name: '',
     street: '',
@@ -70,6 +75,7 @@ export default function CreatorProfileClient({
     creator.artist_name_slug ||
     (creator.artist_name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
   const creatorImpressumLink = creatorSlug ? `/impressum/${creatorSlug}` : '/impressum'
+  const creatorImpressumImageLink = creatorSlug ? `/api/public/impressum-image?slug=${creatorSlug}` : ''
   const songNotes = (socialState?._song_notes && typeof socialState._song_notes === 'object')
     ? socialState._song_notes
     : {}
@@ -89,7 +95,11 @@ export default function CreatorProfileClient({
     { key: 'video_2', label: 'THE SHOW B' },
   ]
 
-  const shopSongs = songs.filter((s: any) => !s.is_probe)
+  const shopSongs = songs.filter((s: any) => {
+    if (s.is_probe) return false
+    if (isCreatorOwner || isAdmin) return true
+    return !s.upload_status || s.upload_status === 'approved'
+  })
   const canEditProfile = isAdmin || (isCreatorOwner && Boolean(activePlanId))
   const activePlan = subscriptionPlans.find((plan) => plan.id === activePlanId) || null
   const filteredShopSongs = useMemo(() => {
@@ -275,8 +285,9 @@ export default function CreatorProfileClient({
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Speichern fehlgeschlagen')
       alert('Creator-Impressum gespeichert.')
-      // Nach dem Speichern den Creator neu laden, um das neue Impressum-Bild zu sehen
-      window.location.reload()
+      if (creatorImpressumImageLink) {
+        setImpressumImageUrl(`${creatorImpressumImageLink}&t=${Date.now()}`)
+      }
     } catch (error: any) {
       alert(`Creator-Impressum fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
@@ -357,6 +368,115 @@ export default function CreatorProfileClient({
       alert(`Song-Info fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
     } finally {
       setSavingSongNote(false)
+    }
+  }
+
+  const handleSmartUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    if (!canEditProfile) {
+      alert('Bitte zuerst ein Abo wählen, um Uploads zu starten.')
+      return
+    }
+
+    const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav']
+    const maxSize = 30 * 1024 * 1024
+    const fileEntries = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        setUploadNotice('Nur MP3 oder WAV erlaubt.')
+        return false
+      }
+      if (file.size > maxSize) {
+        setUploadNotice('Datei zu groß (max. 30MB).')
+        return false
+      }
+      return true
+    })
+
+    if (fileEntries.length === 0) return
+
+    setUploadingSongs(true)
+    setUploadNotice(null)
+
+    const uploadedPaths: string[] = []
+    let createdIds: string[] = []
+
+    const cleanupUploadedFiles = async () => {
+      if (uploadedPaths.length === 0) return
+      await supabase.storage.from('songs').remove(uploadedPaths)
+    }
+
+    const cleanupSongRows = async () => {
+      if (createdIds.length === 0) return
+      await supabase.from('songs').delete().in('id', createdIds)
+    }
+
+    try {
+      const skeletonPayload = fileEntries.map((file) => ({
+        user_id: creator.id,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        file_url: 'uploading://pending',
+        is_probe: false,
+        upload_status: 'pending',
+      }))
+
+      const { data: skeletonRows, error: skeletonError } = await supabase
+        .from('songs')
+        .insert(skeletonPayload)
+        .select('id')
+
+      if (skeletonError || !skeletonRows?.length) {
+        throw skeletonError || new Error('Upload konnte nicht gestartet werden.')
+      }
+
+      createdIds = skeletonRows.map((row: any) => row.id)
+
+      for (let idx = 0; idx < fileEntries.length; idx++) {
+        const current = fileEntries[idx]
+        const rowId = createdIds[idx]
+        const ext = (current.name.split('.').pop() || 'mp3').toLowerCase()
+        const filePath = `${creator.id}/${Date.now()}-${idx + 1}.${ext}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('songs')
+          .upload(filePath, current)
+
+        if (uploadError) throw uploadError
+        uploadedPaths.push(filePath)
+
+        const { data: publicData } = supabase.storage
+          .from('songs')
+          .getPublicUrl(filePath)
+
+        const { error: updateError } = await supabase
+          .from('songs')
+          .update({ file_url: publicData.publicUrl, title: current.name.replace(/\.[^/.]+$/, '') })
+          .eq('id', rowId)
+
+        if (updateError) throw updateError
+      }
+
+      try {
+        await fetch('/api/creator/upload-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songIds: createdIds }),
+        })
+      } catch (reviewError) {
+        console.warn('Upload-Checks nicht erreichbar:', reviewError)
+      }
+
+      setUploadNotice('Upload gespeichert. Tracks sind als Draft sichtbar.')
+      window.location.reload()
+    } catch (error: any) {
+      try {
+        await cleanupUploadedFiles()
+        await cleanupSongRows()
+      } catch {
+        // Cleanup-Fehler ignorieren
+      }
+      setUploadNotice(`Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}`)
+    } finally {
+      setUploadingSongs(false)
     }
   }
 
@@ -687,16 +807,35 @@ export default function CreatorProfileClient({
                         <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-4">
                           // Upload_Field
                         </p>
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full min-h-[56px] rounded-full border border-slate-200 bg-slate-100/80 text-sm font-bold uppercase tracking-wider text-slate-500"
-                        >
-                          Upload MP3/WAV (Coming Soon)
-                        </button>
-                        <p className="mt-4 text-[11px] text-slate-500">
-                          Optimiert für Mobile-Uploads – Button bleibt groß genug.
-                        </p>
+                        <label className="block w-full">
+                          <span className="sr-only">Audio hochladen</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav"
+                            // @ts-ignore - webkitdirectory für Desktop-Ordner-Upload
+                            webkitdirectory="true"
+                            className="hidden"
+                            onChange={(e) => handleSmartUpload(e.target.files)}
+                            disabled={uploadingSongs}
+                          />
+                          <span
+                            className={`block w-full min-h-[56px] rounded-full border border-slate-200 text-sm font-bold uppercase tracking-wider ${
+                              uploadingSongs
+                                ? 'bg-slate-200 text-slate-500'
+                                : 'bg-slate-100/80 hover:bg-white'
+                            } flex items-center justify-center`}
+                          >
+                            {uploadingSongs ? 'Upload läuft…' : 'Upload MP3/WAV'}
+                          </span>
+                        </label>
+                        {uploadNotice ? (
+                          <p className="mt-4 text-[11px] font-mono text-red-600">{uploadNotice}</p>
+                        ) : (
+                          <p className="mt-4 text-[11px] text-slate-500">
+                            Optimiert für Mobile-Uploads – Button bleibt groß genug.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -813,6 +952,8 @@ export default function CreatorProfileClient({
                       price={song.price || 2.99}
                       coverUrl={song.cover_url}
                       previewUrl={song.mp3_preview_url || song.wav_url || song.file_url}
+                      status={song.upload_status}
+                      showDraftBadge={isCreatorOwner || isAdmin}
                       onOpen={() => openSongDetail(song)}
                     />
                   ))}
@@ -852,21 +993,21 @@ export default function CreatorProfileClient({
 
             {showImpressumEditor && canEditProfile && (
               <div className="px-4 md:px-6 pb-10">
-                <div className="bg-white border-2 border-black rounded-[1.5rem] p-4 md:p-5">
+                <div className="bg-white/85 backdrop-blur-md border border-slate-200 rounded-[1.5rem] p-4 md:p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
                   <h3 className="text-lg font-black uppercase mb-3">Impressum-Daten</h3>
                   <div className="grid md:grid-cols-2 gap-3">
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Name / Firma *" value={impressumForm.legal_name} onChange={(e) => setImpressumForm((p) => ({ ...p, legal_name: e.target.value }))} />
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Straße + Nr. *" value={impressumForm.street} onChange={(e) => setImpressumForm((p) => ({ ...p, street: e.target.value }))} />
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="PLZ + Ort *" value={impressumForm.zip_city} onChange={(e) => setImpressumForm((p) => ({ ...p, zip_city: e.target.value }))} />
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Land" value={impressumForm.country} onChange={(e) => setImpressumForm((p) => ({ ...p, country: e.target.value }))} />
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="E-Mail" value={impressumForm.email} onChange={(e) => setImpressumForm((p) => ({ ...p, email: e.target.value }))} />
-                    <input className="border-2 border-black rounded px-3 py-2 text-sm" placeholder="Telefon" value={impressumForm.phone} onChange={(e) => setImpressumForm((p) => ({ ...p, phone: e.target.value }))} />
-                    <input className="md:col-span-2 border-2 border-black rounded px-3 py-2 text-sm" placeholder="Webseite" value={impressumForm.website} onChange={(e) => setImpressumForm((p) => ({ ...p, website: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="Name / Firma *" value={impressumForm.legal_name} onChange={(e) => setImpressumForm((p) => ({ ...p, legal_name: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="Straße + Nr. *" value={impressumForm.street} onChange={(e) => setImpressumForm((p) => ({ ...p, street: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="PLZ + Ort *" value={impressumForm.zip_city} onChange={(e) => setImpressumForm((p) => ({ ...p, zip_city: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="Land" value={impressumForm.country} onChange={(e) => setImpressumForm((p) => ({ ...p, country: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="E-Mail" value={impressumForm.email} onChange={(e) => setImpressumForm((p) => ({ ...p, email: e.target.value }))} />
+                    <input className="border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="Telefon" value={impressumForm.phone} onChange={(e) => setImpressumForm((p) => ({ ...p, phone: e.target.value }))} />
+                    <input className="md:col-span-2 border border-slate-200 rounded-full px-4 py-2 text-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" placeholder="Webseite" value={impressumForm.website} onChange={(e) => setImpressumForm((p) => ({ ...p, website: e.target.value }))} />
                   </div>
                   <div className="mt-4">
                     <button
                       onClick={handleSaveImpressumFromData}
-                      className="bg-black text-white px-4 py-2 rounded font-black uppercase text-xs hover:bg-red-600 flex items-center justify-center gap-2"
+                      className="bg-black text-white px-4 py-2 rounded-full font-black uppercase text-xs hover:bg-red-600 flex items-center justify-center gap-2"
                       disabled={savingImpressum}
                     >
                       {savingImpressum ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -874,21 +1015,25 @@ export default function CreatorProfileClient({
                     </button>
                   </div>
                   {/* Impressum-Bild-Anzeige */}
-                  {creator?.impressum_image_url && (
+                  {impressumImageUrl && (
                     <div className="mt-6">
                       <h4 className="text-md font-black uppercase mb-2">Erstelltes Impressum-Bild</h4>
-                      <div className="relative border-2 border-black rounded-[1.5rem] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImage(impressumImageUrl)}
+                        className="relative w-full border border-slate-200 rounded-[1.5rem] overflow-hidden hover:shadow-[0_0_30px_rgba(255,0,0,0.12)] transition-all"
+                      >
                         <img 
-                          src={creator.impressum_image_url} 
+                          src={impressumImageUrl} 
                           alt="Erstelltes Impressum" 
                           className="w-full h-auto object-contain"
                         />
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                           <span className="text-white text-sm font-bold bg-black/50 px-2 py-1 rounded">
-                            Geschützt gegen automatisches Auslesen
+                            Zum Lesen klicken (Zoom)
                           </span>
                         </div>
-                      </div>
+                      </button>
                     </div>
                   )}
                 </div>

@@ -10,11 +10,24 @@ type CompactSongCardProps = {
   price: number
   coverUrl?: string
   previewUrl?: string
+  status?: string
+  showDraftBadge?: boolean
   onBuy?: () => void
   onOpen?: () => void
 }
 
-export default function CompactSongCard({ songId, title, artist, price, coverUrl, previewUrl, onBuy, onOpen }: CompactSongCardProps) {
+export default function CompactSongCard({
+  songId,
+  title,
+  artist,
+  price,
+  coverUrl,
+  previewUrl,
+  status,
+  showDraftBadge,
+  onBuy,
+  onOpen
+}: CompactSongCardProps) {
   const { play, currentTrack, isPlaying } = usePlayer()
   const isThisTrackPlaying = currentTrack?.id === songId && isPlaying
 
@@ -79,6 +92,11 @@ export default function CompactSongCard({ songId, title, artist, price, coverUrl
           </button>
         )}
       </div>
+      {showDraftBadge && status && status !== 'approved' && (
+        <span className="absolute -top-2 -left-2 bg-white border-2 border-black rounded-full px-2 py-0.5 text-[9px] font-black text-red-600">
+          {status === 'needs_review' ? 'REVIEW' : status === 'blocked' ? 'BLOCKED' : 'DRAFT'}
+        </span>
+      )}
       <span className="absolute -bottom-2 -right-2 bg-white border-2 border-black rounded-full px-2 py-0.5 text-[10px] font-black text-red-600">
         €{price.toFixed(2)}
       </span>
