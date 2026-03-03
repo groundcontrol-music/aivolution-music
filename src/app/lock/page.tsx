@@ -107,7 +107,7 @@ export default function LockPage() {
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [gameOver, showLogin])
+  }, [gameOver])
 
   useEffect(() => {
     const updateCellSize = () => {
